@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+
+{% block title %}Make Predictions - Task Type Classifier{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-upload"></i> Make Predictions</h2>
+        <p class="text-muted">Upload a CSV or Excel (.xlsx) file without the 'Type' column to get predictions.</p>
+
+        <!-- File Upload Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-file-upload"></i> Upload File</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <input type="file" class="form-control" id="csvFile" accept=".csv,.xlsx">
+                    <div class="form-text">Select a CSV or Excel file with columns: Employees, Task Name, Category, Project, Billability Status (Source.Name column no longer required)</div>
+                </div>
+                <button type="button" class="btn btn-primary" id="uploadBtn" disabled>
+                    <i class="fas fa-upload"></i> Upload & Analyze
+                </button>
+                
+                <div id="uploadProgress" class="progress mt-3 d-none">
+                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                
+                <div id="uploadResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Predictions Section -->
+        <div id="predictionsSection" class="d-none">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-brain"></i> Predictions</h5>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="predictBtn" disabled>
+                            <i class="fas fa-magic"></i> Generate Predictions
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success" id="downloadBtn" disabled>
+                            <i class="fas fa-download"></i> Download Results
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="fileInfo" class="mb-3"></div>
+                    
+                    <!-- Predictions Table -->
+                    <div id="predictionsTable" class="d-none">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr id="tableHeaders">
+                                        <!-- Headers will be populated dynamically -->
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <!-- Predictions will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <small class="text-muted">
+                                    <span class="confidence-high">High confidence (>0.8)</span> |
+                                    <span class="confidence-medium">Medium confidence (0.6-0.8)</span> |
+                                    <span class="confidence-low">Low confidence (<0.6)</span>
+                                </small>
+                            </div>
+                            <div id="predictionStats"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Prediction Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Prediction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Current Prediction:</label>
+                    <p id="currentPrediction" class="fw-bold"></p>
+                </div>
+                <div class="mb-3">
+                    <label for="newPrediction" class="form-label">New Type:</label>
+                    <select class="form-select" id="newPrediction">
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Task Details:</label>
+                    <div id="taskDetails" class="small text-muted">
+                        <!-- Task details will be shown here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentFile = null;
+let currentPredictions = null;
+let editingRowIndex = null;
+
+// File input handler
+document.getElementById('csvFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const uploadBtn = document.getElementById('uploadBtn');
+    
+    if (file && (file.type === 'text/csv' || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.name.endsWith('.xlsx'))) {
+        uploadBtn.disabled = false;
+        currentFile = file;
+    } else {
+        uploadBtn.disabled = true;
+        currentFile = null;
+        if (file) {
+            alert('Please select a CSV or Excel (.xlsx) file.');
+        }
+    }
+});
+
+// Upload button handler
+document.getElementById('uploadBtn').addEventListener('click', function() {
+    if (!currentFile) return;
+    
+    const formData = new FormData();
+    formData.append('file', currentFile);
+    
+    const btn = this;
+    const progressDiv = document.getElementById('uploadProgress');
+    const resultDiv = document.getElementById('uploadResult');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+    progressDiv.classList.remove('d-none');
+    
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> ${data.message}
+                </div>
+            `;
+            
+            // Show file info and enable prediction
+            showFileInfo(data.file_info);
+            document.getElementById('predictionsSection').classList.remove('d-none');
+            document.getElementById('predictBtn').disabled = false;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> ${data.message}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> Error: ${error.message}
+            </div>
+        `;
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-upload"></i> Upload & Analyze';
+        progressDiv.classList.add('d-none');
+    });
+});
+
+// Predict button handler
+document.getElementById('predictBtn').addEventListener('click', function() {
+    if (!currentFile) return;
+    
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    
+    fetch('/predict_file', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            filename: currentFile.name
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentPredictions = data.predictions;
+            showPredictions(data.predictions);
+            document.getElementById('downloadBtn').disabled = false;
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate Predictions';
+    });
+});
+
+// Download button handler
+document.getElementById('downloadBtn').addEventListener('click', function() {
+    if (!currentFile) return;
+    
+    window.location.href = '/download/' + currentFile.name;
+});
+
+function showFileInfo(fileInfo) {
+    const infoDiv = document.getElementById('fileInfo');
+    infoDiv.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <strong>File:</strong> ${fileInfo.filename}<br>
+                <strong>Rows:</strong> ${fileInfo.row_count}
+            </div>
+            <div class="col-md-6">
+                <strong>Columns:</strong> ${fileInfo.columns.join(', ')}
+            </div>
+        </div>
+    `;
+}
+
+function showPredictions(predictions) {
+    if (!predictions || predictions.length === 0) return;
+    
+    const tableDiv = document.getElementById('predictionsTable');
+    const headersRow = document.getElementById('tableHeaders');
+    const bodyTable = document.getElementById('tableBody');
+    
+    // Clear existing content
+    headersRow.innerHTML = '';
+    bodyTable.innerHTML = '';
+    
+    // Get columns (excluding our added prediction columns for display)
+    const sampleRow = predictions[0];
+    const columns = Object.keys(sampleRow).filter(col => 
+        !['Predicted_Type', 'Confidence'].includes(col)
+    );
+    
+    // Add headers
+    columns.forEach(col => {
+        const th = document.createElement('th');
+        th.textContent = col;
+        headersRow.appendChild(th);
+    });
+    
+    // Add prediction columns
+    const predTh = document.createElement('th');
+    predTh.textContent = 'Predicted Type';
+    headersRow.appendChild(predTh);
+    
+    const confTh = document.createElement('th');
+    confTh.textContent = 'Confidence';
+    headersRow.appendChild(confTh);
+    
+    const actionTh = document.createElement('th');
+    actionTh.textContent = 'Actions';
+    headersRow.appendChild(actionTh);
+    
+    // Add rows
+    predictions.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'prediction-row';
+        
+        // Regular columns
+        columns.forEach(col => {
+            const td = document.createElement('td');
+            td.textContent = row[col] || '';
+            tr.appendChild(td);
+        });
+        
+        // Predicted type
+        const predTd = document.createElement('td');
+        predTd.innerHTML = `<span class="badge bg-primary">${row.Predicted_Type || 'Unknown'}</span>`;
+        tr.appendChild(predTd);
+        
+        // Confidence
+        const confTd = document.createElement('td');
+        const confidence = parseFloat(row.Confidence || 0);
+        let confidenceClass = 'confidence-low';
+        if (confidence > 0.8) confidenceClass = 'confidence-high';
+        else if (confidence > 0.6) confidenceClass = 'confidence-medium';
+        
+        confTd.innerHTML = `<span class="${confidenceClass}">${(confidence * 100).toFixed(1)}%</span>`;
+        tr.appendChild(confTd);
+        
+        // Actions
+        const actionTd = document.createElement('td');
+        actionTd.innerHTML = `
+            <button class="btn btn-sm btn-outline-primary" onclick="editPrediction(${index})">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+        `;
+        tr.appendChild(actionTd);
+        
+        bodyTable.appendChild(tr);
+    });
+    
+    // Show statistics
+    showPredictionStats(predictions);
+    
+    tableDiv.classList.remove('d-none');
+}
+
+function showPredictionStats(predictions) {
+    const statsDiv = document.getElementById('predictionStats');
+    
+    // Calculate confidence distribution
+    let high = 0, medium = 0, low = 0;
+    predictions.forEach(pred => {
+        const conf = parseFloat(pred.Confidence || 0);
+        if (conf > 0.8) high++;
+        else if (conf > 0.6) medium++;
+        else low++;
+    });
+    
+    statsDiv.innerHTML = `
+        <small>
+            Total: ${predictions.length} | 
+            <span class="confidence-high">High: ${high}</span> | 
+            <span class="confidence-medium">Medium: ${medium}</span> | 
+            <span class="confidence-low">Low: ${low}</span>
+        </small>
+    `;
+}
+
+function editPrediction(rowIndex) {
+    editingRowIndex = rowIndex;
+    const prediction = currentPredictions[rowIndex];
+    
+    // Set current prediction
+    document.getElementById('currentPrediction').textContent = prediction.Predicted_Type || 'Unknown';
+    
+    // Populate select options (you might want to fetch available classes from the server)
+    const selectElement = document.getElementById('newPrediction');
+    selectElement.innerHTML = `
+        <option value="AmaliTech Internal">AmaliTech Internal</option>
+        <option value="Training & Learning">Training & Learning</option>
+        <option value="Client Work">Client Work</option>
+        <option value="Administrative">Administrative</option>
+    `;
+    selectElement.value = prediction.Predicted_Type || '';
+    
+    // Show task details
+    const detailsDiv = document.getElementById('taskDetails');
+    detailsDiv.innerHTML = `
+        <strong>Employee:</strong> ${prediction.Employees || 'N/A'}<br>
+        <strong>Task:</strong> ${prediction['Task Name'] || 'N/A'}<br>
+        <strong>Category:</strong> ${prediction.Category || 'N/A'}<br>
+        <strong>Confidence:</strong> ${(parseFloat(prediction.Confidence || 0) * 100).toFixed(1)}%
+    `;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('editModal'));
+    modal.show();
+}
+
+// Save edit handler
+document.getElementById('saveEditBtn').addEventListener('click', function() {
+    const newType = document.getElementById('newPrediction').value;
+    
+    if (!newType || editingRowIndex === null) return;
+    
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    
+    fetch('/update_prediction', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            filename: currentFile.name,
+            row_index: editingRowIndex,
+            new_type: newType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update local data
+            currentPredictions[editingRowIndex].Predicted_Type = newType;
+            
+            // Refresh display
+            showPredictions(currentPredictions);
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = 'Save Changes';
+    });
+});
+</script>
+{% endblock %}

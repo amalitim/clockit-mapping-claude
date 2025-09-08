@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Feature Analysis - Task Type Classifier{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-chart-bar"></i> Feature Analysis</h2>
+            <button id="refreshBtn" class="btn btn-outline-primary">
+                <i class="fas fa-refresh"></i> Refresh
+            </button>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Feature Importance:</strong> These are the most important words and features that the model uses to classify each task type.
+        </div>
+
+        <div id="featureContainer">
+            {% if feature_importance %}
+                {% for class_name, features in feature_importance.items() %}
+                <div class="class-section mb-4">
+                    <h4 class="mb-3">
+                        <span class="badge bg-primary me-2">{{ class_name }}</span>
+                        Top Features
+                    </h4>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                {% for word, score in features %}
+                                <span class="feature-word" style="background-color: rgba(0, 123, 255, {{ (score / features[0][1] * 0.8 + 0.2) if features else 0.2 }});">
+                                    {{ word }}
+                                    <small class="text-muted">({{ "%.3f"|format(score) }})</small>
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <canvas id="chart-{{ loop.index0 }}" width="200" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h4>No Feature Data Available</h4>
+                    <p class="text-muted">Please train the model first to see feature importance.</p>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> Go Back to Train
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Feature Details Modal -->
+<div class="modal fade" id="featureModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detailed Feature Analysis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailedFeatures">
+                    <!-- Detailed feature analysis will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Create charts for each class
+{% if feature_importance %}
+{% for class_name, features in feature_importance.items() %}
+(function() {
+    const ctx = document.getElementById('chart-{{ loop.index0 }}').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: [{% for word, score in features[:5] %}'{{ word }}'{{ ',' if not loop.last }}{% endfor %}],
+            datasets: [{
+                data: [{% for word, score in features[:5] %}{{ score }}{{ ',' if not loop.last }}{% endfor %}],
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed.toFixed(3);
+                        }
+                    }
+                }
+            }
+        }
+    });
+})();
+{% endfor %}
+{% endif %}
+
+// Refresh button functionality
+document.getElementById('refreshBtn').addEventListener('click', function() {
+    const btn = this;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+    btn.disabled = true;
+    
+    fetch('/api/feature_importance')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                location.reload(); // Simple refresh for now
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="fas fa-refresh"></i> Refresh';
+            btn.disabled = false;
+        });
+});
+
+// Feature word click handlers for detailed analysis
+document.querySelectorAll('.feature-word').forEach(word => {
+    word.style.cursor = 'pointer';
+    word.addEventListener('click', function() {
+        const wordText = this.textContent.split('(')[0].trim();
+        showFeatureDetails(wordText);
+    });
+});
+
+function showFeatureDetails(word) {
+    const modal = new bootstrap.Modal(document.getElementById('featureModal'));
+    const detailsDiv = document.getElementById('detailedFeatures');
+    
+    detailsDiv.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // In a real implementation, you'd fetch detailed analysis for this word
+    setTimeout(() => {
+        detailsDiv.innerHTML = `
+            <h6>Feature: "${word}"</h6>
+            <p>This feature appears across different classes with varying importance scores.</p>
+            <div class="alert alert-info">
+                <small>Detailed cross-class analysis would be implemented here in a full version.</small>
+            </div>
+        `;
+    }, 1000);
+}
+</script>
+{% endblock %}

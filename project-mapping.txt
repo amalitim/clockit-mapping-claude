@@ -1,0 +1,17 @@
+Build a Local Windows App for Task “Type” Classification & Review
+Goal
+
+Create a fully local Windows-friendly Python application that:
+
+1. reads the data in the folder /training-data or accepts a file upload.
+
+2. trains a multi-class classifier to predict the Type column from the other columns except Source.Name,
+
+serves a simple web UI to visualize word/phrase–to–class relationships,
+
+3. lets me upload new CSVs (without Type) for prediction, review/override results inline, and
+
+4. download the final CSV with Type appended.
+
+5. Everything must run offline on Windows 10/11. (e.g via web browser)
+

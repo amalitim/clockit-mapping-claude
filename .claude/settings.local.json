@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv venv:*)",
+      "Bash(.venvScriptsactivate)",
+      "Bash(uv pip install:*)",
+      "Bash(uv run:*)",
+      "Bash(timeout:*)",
+      "Bash(python:*)",
+      "Bash(dir:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
