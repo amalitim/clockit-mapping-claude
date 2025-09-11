@@ -8,7 +8,12 @@ A fully local Windows application for task type classification and review. This 
 - **Improved Machine Learning**: Uses optimized Random Forest with class balancing and enhanced TF-IDF features
 - **Web Interface**: Simple browser-based UI for all operations
 - **Multi-Format Support**: Upload CSV or Excel (.xlsx) files, download in original format
-- **Interactive Review**: Edit predictions inline before downloading
+- **Enhanced Interactive Review**: 
+  - Edit predictions inline before downloading
+  - **Column Sorting**: Sort predictions by any column (ascending/descending)
+  - **Real-time Search/Filter**: Filter records across all data fields
+  - **Complete Task Type Options**: Edit dropdown shows all 14+ available task types from training data
+  - **Reset Functionality**: Clear all filters and return to original view
 - **Feature Analysis**: Visualize word-to-class relationships with class-specific insights
 - **Robust File Handling**: Supports CSV (various encodings) and Excel (.xlsx) files, handles JSON serialization issues
 - **Format Preservation**: Excel files remain as Excel, CSV files remain as CSV throughout the workflow
@@ -99,6 +104,11 @@ clockit-mapping-claude/
 - Upload a CSV or Excel (.xlsx) file without prediction columns
 - **No Source.Name column needed** for prediction files
 - Click "Generate Predictions" to get classifications
+- **Enhanced Predictions Table Features:**
+  - **Column Sorting**: Click any column header to sort ascending/descending
+  - **Search/Filter**: Use the search box to filter records across all columns
+  - **Reset View**: Click "Reset View" to clear all filters and sorting
+  - **Complete Edit Options**: Edit dropdown shows all available task types from training data
 - Review and edit predictions inline with confidence scores
 - Download the final file with 'Predicted_Type' and 'Confidence' columns added
 - **Format preservation**: Excel files download as .xlsx, CSV files as .csv
@@ -166,6 +176,11 @@ Should include required columns (Source.Name column no longer expected):
 - **ML Algorithm**: Optimized Random Forest with class balancing
 - **Text Processing**: Enhanced TF-IDF with bigrams (1-2 word phrases)
 - **Feature Engineering**: 1,500 TF-IDF features + numeric duration features
+- **Enhanced UI Features**:
+  - **Dynamic Sorting**: JavaScript-based column sorting for all data fields
+  - **Real-time Filtering**: Client-side search across all prediction data
+  - **Dynamic Class Loading**: API endpoint (`/api/classes`) provides complete task type list
+  - **Responsive Design**: Bootstrap-based responsive interface
 - **File Format Support**: 
   - **CSV**: UTF-8 with BOM handling, traditional format
   - **Excel (.xlsx)**: Full support with openpyxl engine, preferred format

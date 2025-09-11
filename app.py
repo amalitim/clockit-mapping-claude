@@ -313,6 +313,31 @@ def api_feature_importance():
     except Exception as e:
         return jsonify({'error': str(e)})
 
+@app.route('/api/classes')
+def api_classes():
+    """API endpoint to get all available task type classes"""
+    if not train_model_if_needed():
+        return jsonify({'error': 'Could not load or train model'})
+    
+    try:
+        classes = classifier.get_class_distribution()
+        
+        # Convert numpy array to list if needed and check if empty
+        if hasattr(classes, 'tolist'):
+            classes = classes.tolist()
+        
+        if not classes:
+            # Fallback: read directly from training data
+            training_file = 'training-data/mapped_sample_2025.07.31.csv'
+            if os.path.exists(training_file):
+                df = pd.read_csv(training_file, encoding='utf-8-sig')
+                if 'Type' in df.columns:
+                    classes = sorted(df['Type'].unique().tolist())
+        
+        return jsonify({'success': True, 'classes': classes})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 if __name__ == '__main__':
     # Ensure model is trained on startup
     print("Initializing classifier...")

@@ -7,7 +7,9 @@
       "Bash(uv run:*)",
       "Bash(timeout:*)",
       "Bash(python:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(curl:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
