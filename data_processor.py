@@ -6,21 +6,19 @@ import os
 
 class DataProcessor:
     def __init__(self):
-        # Optimized TF-IDF balancing performance with model size for GitHub
+        # High-performance TF-IDF with baseline parameters (same as 500-tree model)
         self.tfidf = TfidfVectorizer(
-            max_features=3000,          # Reduced from 5000 - sweet spot for performance/size balance
+            max_features=3000,          # Same as baseline - optimal feature count for discrimination
             stop_words='english',       # Remove common English words
-            ngram_range=(1, 3),         # Reduced from 4-grams to 3-grams for size reduction
-            min_df=2,                   # Increased from 1 to reduce rare terms and vocabulary size
-            max_df=0.85,                # More aggressive filtering of very common terms
+            ngram_range=(1, 3),         # Same as baseline - include trigrams for richer context
+            min_df=1,                   # Reverted to baseline - capture even rare but important terms
+            max_df=0.90,                # Reverted to baseline - less aggressive filtering
             sublinear_tf=True,          # Apply sublinear tf scaling
             norm='l2',                  # L2 normalization for better feature scaling
             use_idf=True,               # Ensure IDF weighting is applied
             smooth_idf=True,            # Smooth IDF weights to prevent division by zero
             lowercase=True,             # Ensure consistent casing
-            token_pattern=r'\b[a-zA-Z]{2,}\b',  # Enhanced token pattern - words with 2+ letters
-            analyzer='word',            # Ensure word-level analysis
-            binary=False                # Use term frequency (not just binary presence)
+            token_pattern=r'\b[a-zA-Z]{2,}\b'  # Enhanced token pattern - words with 2+ letters
         )
         self.label_encoder = LabelEncoder()
         self.feature_names = []

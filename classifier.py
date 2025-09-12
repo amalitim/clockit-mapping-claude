@@ -9,12 +9,12 @@ from data_processor import DataProcessor
 
 class TaskTypeClassifier:
     def __init__(self):
-        # Optimized RandomForest balancing performance with model size for GitHub
+        # High-performance RandomForest with baseline parameters + increased trees
         self.model = RandomForestClassifier(
-            n_estimators=750,           # Optimal balance: 75% of max trees for 90% of performance gain
-            max_depth=25,               # Reduced depth to control tree size
-            min_samples_split=3,        # Slightly increased to reduce overfitting and size
-            min_samples_leaf=2,         # Increased to reduce leaf nodes and model size
+            n_estimators=750,           # Increased from baseline 500 for better ensemble performance
+            max_depth=25,               # Same as baseline - deep trees for complex patterns
+            min_samples_split=3,        # Same as baseline - granular splits
+            min_samples_leaf=1,         # Reverted to baseline - finer leaf nodes
             max_features='sqrt',        # Optimal feature selection at each split
             bootstrap=True,             # Enable bootstrap sampling for variance reduction
             oob_score=True,             # Out-of-bag score for additional validation
