@@ -684,21 +684,27 @@ def api_model_info():
     
     try:
         model_info = {
-            'algorithm': 'Random Forest Classifier',
-            'description': 'An ensemble learning method that uses multiple decision trees and voting for classification',
+            'algorithm': 'High-Performance Random Forest Classifier',
+            'description': 'An optimized ensemble learning method using 500 decision trees with enhanced parameters for maximum accuracy',
             'parameters': {
-                'n_estimators': 200,
-                'max_depth': 15,
-                'min_samples_split': 5,
-                'min_samples_leaf': 2,
+                'n_estimators': 500,
+                'max_depth': 25,
+                'min_samples_split': 3,
+                'min_samples_leaf': 1,
+                'max_features': 'sqrt',
+                'bootstrap': True,
+                'oob_score': True,
                 'class_weight': 'balanced',
+                'n_jobs': -1,
                 'random_state': 42
             },
             'features': {
-                'text_vectorization': 'TF-IDF (Term Frequency-Inverse Document Frequency)',
-                'max_features': 1500,
-                'ngram_range': '(1, 2) - unigrams and bigrams',
-                'stop_words': 'English stop words removed'
+                'text_vectorization': 'Enhanced TF-IDF (Term Frequency-Inverse Document Frequency)',
+                'max_features': 3000,
+                'ngram_range': '(1, 3) - unigrams, bigrams, and trigrams',
+                'stop_words': 'English stop words removed',
+                'normalization': 'L2 normalization',
+                'token_pattern': 'Words with 2+ letters'
             },
             'preprocessing': [
                 'Text fields combined: Employees, Task Name, Category, Project, Billability Status',

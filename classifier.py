@@ -9,13 +9,17 @@ from data_processor import DataProcessor
 
 class TaskTypeClassifier:
     def __init__(self):
-        # Improved RandomForest with better parameters for imbalanced data
+        # High-performance RandomForest with optimized parameters for maximum accuracy
         self.model = RandomForestClassifier(
-            n_estimators=200,           # More trees for better performance
-            max_depth=15,               # Limit depth to prevent overfitting
-            min_samples_split=5,        # Require more samples to split
-            min_samples_leaf=2,         # Require more samples per leaf
+            n_estimators=500,           # Increased from 200 - more trees for better ensemble performance
+            max_depth=25,               # Increased from 15 - deeper trees for more complex patterns
+            min_samples_split=3,        # Decreased from 5 - allow more granular splits
+            min_samples_leaf=1,         # Decreased from 2 - allow finer leaf nodes
+            max_features='sqrt',        # Optimal feature selection at each split
+            bootstrap=True,             # Enable bootstrap sampling for variance reduction
+            oob_score=True,             # Out-of-bag score for additional validation
             class_weight='balanced',    # Handle class imbalance
+            n_jobs=-1,                  # Use all CPU cores for faster training
             random_state=42
         )
         self.data_processor = DataProcessor()
@@ -49,9 +53,14 @@ class TaskTypeClassifier:
         print(f"Training accuracy: {train_score:.3f}")
         print(f"Validation accuracy: {test_score:.3f}")
         
-        # Cross-validation
-        cv_scores = cross_val_score(self.model, X, y, cv=5)
+        # Out-of-Bag Score (built-in validation from Random Forest)
+        if hasattr(self.model, 'oob_score_') and self.model.oob_score_:
+            print(f"Out-of-Bag accuracy: {self.model.oob_score_:.3f}")
+        
+        # Cross-validation with more folds for better validation
+        cv_scores = cross_val_score(self.model, X, y, cv=10, scoring='accuracy')
         print(f"Cross-validation accuracy: {cv_scores.mean():.3f} (+/- {cv_scores.std() * 2:.3f})")
+        print(f"CV scores per fold: {[f'{score:.3f}' for score in cv_scores]}")
         
         # Predictions for detailed evaluation
         y_pred = self.model.predict(X_test)
