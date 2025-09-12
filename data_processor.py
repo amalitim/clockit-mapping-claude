@@ -19,19 +19,26 @@ class DataProcessor:
         self.feature_names = []
         
     def load_training_data(self, folder_path='training-data'):
-        """Load training data from CSV files in the specified folder"""
+        """Load training data from CSV and Excel files in the specified folder"""
         data_frames = []
         
         for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+            
             if filename.endswith('.csv'):
-                file_path = os.path.join(folder_path, filename)
+                print(f"Loading CSV training file: {filename}")
                 df = pd.read_csv(file_path, encoding='utf-8-sig')
+                data_frames.append(df)
+            elif filename.endswith('.xlsx'):
+                print(f"Loading Excel training file: {filename}")
+                df = pd.read_excel(file_path, engine='openpyxl')
                 data_frames.append(df)
         
         if not data_frames:
-            raise ValueError("No CSV files found in training data folder")
+            raise ValueError("No CSV or Excel files found in training data folder")
         
         combined_df = pd.concat(data_frames, ignore_index=True)
+        print(f"Combined training data: {len(combined_df)} rows, {len(combined_df.columns)} columns")
         return combined_df
     
     def preprocess_features(self, df, is_training=True):

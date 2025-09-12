@@ -6,95 +6,582 @@
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="fas fa-chart-bar"></i> Feature Analysis</h2>
+            <h2><i class="fas fa-chart-bar"></i> Feature Analysis & Model Insights</h2>
             <button id="refreshBtn" class="btn btn-outline-primary">
-                <i class="fas fa-refresh"></i> Refresh
+                <i class="fas fa-sync-alt"></i> Refresh Data
             </button>
         </div>
 
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i>
-            <strong>Feature Importance:</strong> These are the most important words and features that the model uses to classify each task type.
-        </div>
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs mb-4" id="visualizationTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="grid-tab" data-bs-toggle="tab" data-bs-target="#grid-pane" type="button" role="tab">
+                    <i class="fas fa-table"></i> Feature Importance Grid
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="wordcloud-tab" data-bs-toggle="tab" data-bs-target="#wordcloud-pane" type="button" role="tab">
+                    <i class="fas fa-list"></i> Word Frequency
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes-pane" type="button" role="tab">
+                    <i class="fas fa-tags"></i> Class Analysis
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="model-tab" data-bs-toggle="tab" data-bs-target="#model-pane" type="button" role="tab">
+                    <i class="fas fa-cogs"></i> Model Information
+                </button>
+            </li>
+        </ul>
 
-        <div id="featureContainer">
-            {% if feature_importance %}
-                {% for class_name, features in feature_importance.items() %}
-                <div class="class-section mb-4">
-                    <h4 class="mb-3">
-                        <span class="badge bg-primary me-2">{{ class_name }}</span>
-                        Top Features
-                    </h4>
-                    
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                {% for word, score in features %}
-                                <span class="feature-word" style="background-color: rgba(0, 123, 255, {{ (score / features[0][1] * 0.8 + 0.2) if features else 0.2 }});">
-                                    {{ word }}
-                                    <small class="text-muted">({{ "%.3f"|format(score) }})</small>
-                                </span>
-                                {% endfor %}
+        <!-- Tab Content -->
+        <div class="tab-content" id="visualizationTabContent">
+            
+            <!-- Feature Importance Grid Tab -->
+            <div class="tab-pane fade show active" id="grid-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-table"></i> Feature Importance Grid
+                        </h5>
+                        <small class="text-muted">Words/phrases (rows) vs Task Types (columns) with importance scores</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="featureGridContainer">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading feature importance grid...</p>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <canvas id="chart-{{ loop.index0 }}" width="200" height="200"></canvas>
                         </div>
                     </div>
                 </div>
-                {% endfor %}
-            {% else %}
-                <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                    <h4>No Feature Data Available</h4>
-                    <p class="text-muted">Please train the model first to see feature importance.</p>
-                    <a href="{{ url_for('index') }}" class="btn btn-primary">
-                        <i class="fas fa-arrow-left"></i> Go Back to Train
-                    </a>
+            </div>
+
+            <!-- Word Frequency Table Tab -->
+            <div class="tab-pane fade" id="wordcloud-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list"></i> Word Frequency Analysis
+                        </h5>
+                        <small class="text-muted">All words/phrases with occurrence counts and percentages</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="wordFrequencyContainer">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading word frequencies...</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            {% endif %}
+            </div>
+
+            <!-- Class Analysis Tab -->
+            <div class="tab-pane fade" id="classes-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-tags"></i> Task Type Analysis
+                        </h5>
+                        <small class="text-muted">Detailed analysis by task type with top features</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="classesContainer">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading class analysis...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Information Tab -->
+            <div class="tab-pane fade" id="model-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-cogs"></i> Model Information
+                        </h5>
+                        <small class="text-muted">Algorithm details, parameters, and preprocessing</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="modelInfoContainer">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading model information...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Feature Details Modal -->
-<div class="modal fade" id="featureModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Detailed Feature Analysis</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="detailedFeatures">
-                    <!-- Detailed feature analysis will be loaded here -->
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<style>
+.feature-grid {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.feature-grid table {
+    font-size: 0.85rem;
+}
+
+.score-cell {
+    text-align: center;
+    font-weight: bold;
+    border-radius: 3px;
+    padding: 4px 8px;
+    margin: 1px;
+    display: inline-block;
+    min-width: 50px;
+}
+
+.word-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    min-height: 400px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+}
+
+.word-cloud-item {
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.word-cloud-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    color: white;
+}
+
+.class-feature-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.class-feature-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.feature-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 2px;
+    background: rgba(0, 123, 255, 0.1);
+    border: 1px solid rgba(0, 123, 255, 0.3);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.feature-tag:hover {
+    background: rgba(0, 123, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.model-param {
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 4px 0;
+    border-left: 3px solid #007bff;
+}
+
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link.active {
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
+    background: none;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #007bff;
+    border-bottom: 2px solid rgba(0, 123, 255, 0.3);
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Create charts for each class
-{% if feature_importance %}
-{% for class_name, features in feature_importance.items() %}
-(function() {
-    const ctx = document.getElementById('chart-{{ loop.index0 }}').getContext('2d');
-    const chart = new Chart(ctx, {
+let gridData = null;
+let wordFrequencies = null;
+let featureImportance = null;
+let modelInfo = null;
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadFeatureGrid();
+    
+    // Load other tabs when clicked
+    document.getElementById('wordcloud-tab').addEventListener('click', () => loadWordFrequencyTable());
+    document.getElementById('classes-tab').addEventListener('click', () => loadClassAnalysis());
+    document.getElementById('model-tab').addEventListener('click', () => loadModelInfo());
+});
+
+// Refresh button
+document.getElementById('refreshBtn').addEventListener('click', function() {
+    const btn = this;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    btn.disabled = true;
+    
+    // Clear cached data
+    gridData = null;
+    wordFrequencies = null;
+    featureImportance = null;
+    modelInfo = null;
+    
+    // Reload current tab
+    const activeTab = document.querySelector('.nav-link.active');
+    if (activeTab.id === 'grid-tab') loadFeatureGrid();
+    else if (activeTab.id === 'wordcloud-tab') loadWordFrequencyTable();
+    else if (activeTab.id === 'classes-tab') loadClassAnalysis();
+    else if (activeTab.id === 'model-tab') loadModelInfo();
+    
+    setTimeout(() => {
+        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+        btn.disabled = false;
+    }, 1000);
+});
+
+function loadFeatureGrid() {
+    if (gridData) {
+        renderFeatureGrid();
+        return;
+    }
+    
+    fetch('/api/feature_grid')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                gridData = data;
+                renderFeatureGrid();
+            } else {
+                document.getElementById('featureGridContainer').innerHTML = 
+                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            document.getElementById('featureGridContainer').innerHTML = 
+                `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+        });
+}
+
+function renderFeatureGrid() {
+    if (!gridData) return;
+    
+    const container = document.getElementById('featureGridContainer');
+    const classes = gridData.classes;
+    const grid = gridData.grid_data;
+    
+    let html = '<div class="feature-grid"><div class="table-responsive"><table class="table table-sm table-hover">';
+    
+    // Header
+    html += '<thead class="table-dark"><tr><th style="position: sticky; left: 0; background: #343a40; z-index: 10;">Word/Phrase</th>';
+    classes.forEach(cls => {
+        html += `<th class="text-center">${cls}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    
+    // Rows
+    grid.forEach(row => {
+        html += '<tr>';
+        html += `<td style="position: sticky; left: 0; background: white; font-weight: bold; z-index: 5;">${row.word}</td>`;
+        
+        classes.forEach(cls => {
+            const score = row[cls] || 0;
+            const intensity = Math.min(score * 10, 1); // Scale for opacity
+            const backgroundColor = score > 0 ? `rgba(0, 123, 255, ${0.1 + intensity * 0.7})` : 'transparent';
+            const textColor = intensity > 0.5 ? 'white' : '#333';
+            
+            html += `<td class="text-center">`;
+            if (score > 0) {
+                html += `<span class="score-cell" style="background-color: ${backgroundColor}; color: ${textColor};" title="Feature '${row.word}' importance for '${cls}': ${score.toFixed(4)}">${score.toFixed(3)}</span>`;
+            } else {
+                html += '<span style="color: #ccc;" title="No importance for this feature-class combination">-</span>';
+            }
+            html += '</td>';
+        });
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table></div></div>';
+    html += '<div class="mt-3"><small class="text-muted"><i class="fas fa-info-circle"></i> Darker cells indicate higher feature importance for that task type. Hover over cells for exact values.</small></div>';
+    
+    container.innerHTML = html;
+}
+
+function loadWordFrequencyTable() {
+    if (wordFrequencies) {
+        renderWordFrequencyTable();
+        return;
+    }
+    
+    fetch('/api/word_frequencies')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                wordFrequencies = data;
+                renderWordFrequencyTable();
+            } else {
+                document.getElementById('wordFrequencyContainer').innerHTML = 
+                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            document.getElementById('wordFrequencyContainer').innerHTML = 
+                `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+        });
+}
+
+function renderWordFrequencyTable() {
+    if (!wordFrequencies || !wordFrequencies.word_frequencies || wordFrequencies.word_frequencies.length === 0) return;
+    
+    const container = document.getElementById('wordFrequencyContainer');
+    const words = wordFrequencies.word_frequencies;
+    
+    let html = `
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="wordSearchInput" class="form-control" placeholder="Search words...">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-end">
+                        <small class="text-muted">
+                            <strong>Total Words:</strong> ${wordFrequencies.total_words.toLocaleString()} | 
+                            <strong>Unique Words:</strong> ${wordFrequencies.unique_words.toLocaleString()}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+            <table class="table table-striped table-hover table-sm" id="wordFrequencyTable">
+                <thead class="table-dark sticky-top">
+                    <tr>
+                        <th style="cursor: pointer;" onclick="sortWordTable(0)">
+                            Word/Phrase <i class="fas fa-sort" id="sort-icon-0"></i>
+                        </th>
+                        <th style="cursor: pointer;" onclick="sortWordTable(1)" class="text-end">
+                            Count <i class="fas fa-sort" id="sort-icon-1"></i>
+                        </th>
+                        <th style="cursor: pointer;" onclick="sortWordTable(2)" class="text-end">
+                            Percentage <i class="fas fa-sort" id="sort-icon-2"></i>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="wordTableBody">
+    `;
+    
+    words.forEach((item, idx) => {
+        html += `
+            <tr>
+                <td><strong>${item.word}</strong></td>
+                <td class="text-end">${item.frequency.toLocaleString()}</td>
+                <td class="text-end">${item.percentage}%</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3">
+            <small class="text-muted">
+                <i class="fas fa-info-circle"></i> 
+                Table shows all words from training data (3+ characters, stop words removed). 
+                Click column headers to sort. Already sorted by frequency (descending).
+            </small>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Add search functionality
+    document.getElementById('wordSearchInput').addEventListener('input', function() {
+        filterWordTable(this.value);
+    });
+}
+
+let currentWordSort = { column: 1, ascending: false }; // Default sort by frequency descending
+
+function sortWordTable(column) {
+    const tbody = document.getElementById('wordTableBody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Toggle sort direction if same column
+    if (currentWordSort.column === column) {
+        currentWordSort.ascending = !currentWordSort.ascending;
+    } else {
+        currentWordSort.column = column;
+        currentWordSort.ascending = column === 0; // Ascending for words, descending for numbers
+    }
+    
+    // Update sort icons
+    document.querySelectorAll('[id^="sort-icon-"]').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    
+    const icon = document.getElementById(`sort-icon-${column}`);
+    icon.className = currentWordSort.ascending ? 'fas fa-sort-up' : 'fas fa-sort-down';
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        let aVal, bVal;
+        
+        if (column === 0) { // Word column
+            aVal = a.cells[0].textContent.toLowerCase();
+            bVal = b.cells[0].textContent.toLowerCase();
+        } else { // Numeric columns
+            aVal = parseFloat(a.cells[column].textContent.replace(/[,%]/g, ''));
+            bVal = parseFloat(b.cells[column].textContent.replace(/[,%]/g, ''));
+        }
+        
+        if (currentWordSort.ascending) {
+            return aVal > bVal ? 1 : -1;
+        } else {
+            return aVal < bVal ? 1 : -1;
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function filterWordTable(searchTerm) {
+    const tbody = document.getElementById('wordTableBody');
+    const rows = tbody.querySelectorAll('tr');
+    const term = searchTerm.toLowerCase();
+    
+    rows.forEach(row => {
+        const word = row.cells[0].textContent.toLowerCase();
+        if (word.includes(term)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function loadClassAnalysis() {
+    if (featureImportance) {
+        renderClassAnalysis();
+        return;
+    }
+    
+    fetch('/api/feature_importance')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('classesContainer').innerHTML = 
+                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
+            } else {
+                featureImportance = data;
+                renderClassAnalysis();
+            }
+        })
+        .catch(error => {
+            document.getElementById('classesContainer').innerHTML = 
+                `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+        });
+}
+
+function renderClassAnalysis() {
+    if (!featureImportance) return;
+    
+    const container = document.getElementById('classesContainer');
+    let html = '';
+    
+    Object.entries(featureImportance).forEach(([className, features]) => {
+        html += `
+            <div class="class-feature-card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <span class="badge bg-primary me-2">${className}</span>
+                        Top Discriminative Features
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-2">
+                                ${features.map((feature, idx) => 
+                                    `<span class="feature-tag" style="background: rgba(${120 + idx * 30}, 80, 200, ${0.1 + (features.length - idx) * 0.1})">${feature[0]} <small>(${feature[1].toFixed(3)})</small></span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <canvas id="chart-${className.replace(/\s+/g, '')}" width="150" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    
+    // Create charts
+    Object.entries(featureImportance).forEach(([className, features]) => {
+        createClassChart(className, features.slice(0, 5));
+    });
+}
+
+function createClassChart(className, features) {
+    const canvasId = `chart-${className.replace(/\s+/g, '')}`;
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: [{% for word, score in features[:5] %}'{{ word }}'{{ ',' if not loop.last }}{% endfor %}],
+            labels: features.map(f => f[0]),
             datasets: [{
-                data: [{% for word, score in features[:5] %}{{ score }}{{ ',' if not loop.last }}{% endfor %}],
+                data: features.map(f => f[1]),
                 backgroundColor: [
-                    '#FF6384',
-                    '#36A2EB',
-                    '#FFCE56',
-                    '#4BC0C0',
-                    '#9966FF'
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
                 ],
                 borderWidth: 2
             }]
@@ -102,80 +589,135 @@
         options: {
             responsive: false,
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return context.label + ': ' + context.parsed.toFixed(3);
+                            return `${context.label}: ${context.parsed.toFixed(3)}`;
                         }
                     }
                 }
             }
         }
     });
-})();
-{% endfor %}
-{% endif %}
+}
 
-// Refresh button functionality
-document.getElementById('refreshBtn').addEventListener('click', function() {
-    const btn = this;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-    btn.disabled = true;
+function loadModelInfo() {
+    if (modelInfo) {
+        renderModelInfo();
+        return;
+    }
     
-    fetch('/api/feature_importance')
+    fetch('/api/model_info')
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                alert('Error: ' + data.error);
+            if (data.success) {
+                modelInfo = data.model_info;
+                renderModelInfo();
             } else {
-                location.reload(); // Simple refresh for now
+                document.getElementById('modelInfoContainer').innerHTML = 
+                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
             }
         })
         .catch(error => {
-            alert('Error: ' + error.message);
-        })
-        .finally(() => {
-            btn.innerHTML = '<i class="fas fa-refresh"></i> Refresh';
-            btn.disabled = false;
+            document.getElementById('modelInfoContainer').innerHTML = 
+                `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
         });
-});
+}
 
-// Feature word click handlers for detailed analysis
-document.querySelectorAll('.feature-word').forEach(word => {
-    word.style.cursor = 'pointer';
-    word.addEventListener('click', function() {
-        const wordText = this.textContent.split('(')[0].trim();
-        showFeatureDetails(wordText);
-    });
-});
-
-function showFeatureDetails(word) {
-    const modal = new bootstrap.Modal(document.getElementById('featureModal'));
-    const detailsDiv = document.getElementById('detailedFeatures');
+function renderModelInfo() {
+    if (!modelInfo) return;
     
-    detailsDiv.innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
+    const container = document.getElementById('modelInfoContainer');
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-robot"></i> Algorithm</h6>
+                    </div>
+                    <div class="card-body">
+                        <h5>${modelInfo.algorithm}</h5>
+                        <p class="text-muted">${modelInfo.description}</p>
+                        <div class="alert alert-info">
+                            <small><strong>Why Random Forest?</strong><br>
+                            • Handles mixed data types well (text + numeric)<br>
+                            • Resistant to overfitting<br>
+                            • Provides feature importance scores<br>
+                            • Works well with imbalanced classes</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-sliders-h"></i> Model Parameters</h6>
+                    </div>
+                    <div class="card-body">
+                        ${Object.entries(modelInfo.parameters).map(([key, value]) => 
+                            `<div class="model-param">
+                                <strong>${key.replace(/_/g, ' ')}:</strong> ${value}
+                            </div>`
+                        ).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-text-width"></i> Text Processing</h6>
+                    </div>
+                    <div class="card-body">
+                        ${Object.entries(modelInfo.features).map(([key, value]) => 
+                            `<div class="model-param">
+                                <strong>${key.replace(/_/g, ' ')}:</strong> ${value}
+                            </div>`
+                        ).join('')}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-cog"></i> Preprocessing Steps</h6>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            ${modelInfo.preprocessing.map(step => `<li>${step}</li>`).join('')}
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-tags"></i> Task Types (Classes)</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Number of Features:</strong> ${modelInfo.n_features}</p>
+                        <p><strong>Task Types (${modelInfo.classes.length}):</strong></p>
+                        <div class="d-flex flex-wrap gap-2">
+                            ${modelInfo.classes.map((cls, idx) => 
+                                `<span class="badge" style="background: hsl(${idx * 360 / modelInfo.classes.length}, 70%, 50%); font-size: 0.9rem;">${cls}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
     
-    modal.show();
-    
-    // In a real implementation, you'd fetch detailed analysis for this word
-    setTimeout(() => {
-        detailsDiv.innerHTML = `
-            <h6>Feature: "${word}"</h6>
-            <p>This feature appears across different classes with varying importance scores.</p>
-            <div class="alert alert-info">
-                <small>Detailed cross-class analysis would be implemented here in a full version.</small>
-            </div>
-        `;
-    }, 1000);
+    container.innerHTML = html;
 }
 </script>
 {% endblock %}

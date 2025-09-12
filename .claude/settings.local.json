@@ -9,7 +9,8 @@
       "Bash(python:*)",
       "Bash(dir:*)",
       "Bash(curl:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
