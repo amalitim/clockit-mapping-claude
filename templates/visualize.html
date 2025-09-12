@@ -378,17 +378,31 @@ function renderWordFrequencyTable() {
     let html = `
         <div class="mb-3">
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
                         <input type="text" id="wordSearchInput" class="form-control" placeholder="Search words...">
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showAllWords()">
+                            <i class="fas fa-eye"></i> All Words
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="showExcludedWords()">
+                            <i class="fas fa-eye-slash"></i> Excluded Only
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="showIncludedWords()">
+                            <i class="fas fa-check"></i> Included Only
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
                     <div class="text-end">
                         <small class="text-muted">
-                            <strong>Total Words:</strong> ${wordFrequencies.total_words.toLocaleString()} | 
-                            <strong>Unique Words:</strong> ${wordFrequencies.unique_words.toLocaleString()}
+                            <strong>Total Words:</strong> <span id="totalWordsCount">${wordFrequencies.total_words.toLocaleString()}</span> | 
+                            <strong>Included:</strong> <span id="includedWordsCount">0</span> | 
+                            <strong>Excluded:</strong> <span id="excludedWordsCount">0</span>
                         </small>
                     </div>
                 </div>
@@ -408,17 +422,40 @@ function renderWordFrequencyTable() {
                         <th style="cursor: pointer;" onclick="sortWordTable(2)" class="text-end">
                             Percentage <i class="fas fa-sort" id="sort-icon-2"></i>
                         </th>
+                        <th class="text-center" style="width: 120px;">
+                            Include/Exclude
+                            <div class="mt-1">
+                                <button class="btn btn-xs btn-outline-light" onclick="toggleAllWords(true)" title="Include All">
+                                    <i class="fas fa-check-double fa-xs"></i>
+                                </button>
+                                <button class="btn btn-xs btn-outline-light ms-1" onclick="toggleAllWords(false)" title="Exclude All">
+                                    <i class="fas fa-times fa-xs"></i>
+                                </button>
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody id="wordTableBody">
     `;
     
     words.forEach((item, idx) => {
+        const isExcluded = isWordExcluded(item.word);
+        const rowClass = isExcluded ? 'table-warning' : '';
+        const adjustedPercentage = calculateAdjustedPercentage(item.word, item.frequency);
+        
         html += `
-            <tr>
+            <tr class="${rowClass}" data-word="${item.word}" data-frequency="${item.frequency}">
                 <td><strong>${item.word}</strong></td>
                 <td class="text-end">${item.frequency.toLocaleString()}</td>
-                <td class="text-end">${item.percentage}%</td>
+                <td class="text-end" data-original-percentage="${item.percentage}">${adjustedPercentage}%</td>
+                <td class="text-center">
+                    <button class="btn ${isExcluded ? 'btn-warning' : 'btn-success'} btn-sm toggle-btn" 
+                            onclick="toggleWordExclusion('${item.word}')" 
+                            title="${isExcluded ? 'Click to include this word' : 'Click to exclude this word'}">
+                        <i class="fas ${isExcluded ? 'fa-eye-slash' : 'fa-check'} fa-xs"></i>
+                        <span class="ms-1">${isExcluded ? 'Excluded' : 'Included'}</span>
+                    </button>
+                </td>
             </tr>
         `;
     });
@@ -442,6 +479,9 @@ function renderWordFrequencyTable() {
     document.getElementById('wordSearchInput').addEventListener('input', function() {
         filterWordTable(this.value);
     });
+    
+    // Update counts after rendering
+    updateWordCounts();
 }
 
 let currentWordSort = { column: 1, ascending: false }; // Default sort by frequency descending
@@ -718,6 +758,210 @@ function renderModelInfo() {
     `;
     
     container.innerHTML = html;
+}
+
+// === Word Exclusion Management with localStorage ===
+
+const STORAGE_KEY = 'wordFrequencyExclusions';
+
+// Get excluded words from localStorage
+function getExcludedWords() {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+        console.error('Error reading from localStorage:', error);
+        return [];
+    }
+}
+
+// Save excluded words to localStorage
+function saveExcludedWords(excludedWords) {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(excludedWords));
+    } catch (error) {
+        console.error('Error saving to localStorage:', error);
+    }
+}
+
+// Check if a word is excluded
+function isWordExcluded(word) {
+    const excludedWords = getExcludedWords();
+    return excludedWords.includes(word);
+}
+
+// Toggle word exclusion
+function toggleWordExclusion(word) {
+    const excludedWords = getExcludedWords();
+    const isCurrentlyExcluded = excludedWords.includes(word);
+    
+    if (isCurrentlyExcluded) {
+        // Remove from excluded list
+        const index = excludedWords.indexOf(word);
+        excludedWords.splice(index, 1);
+    } else {
+        // Add to excluded list
+        excludedWords.push(word);
+    }
+    
+    saveExcludedWords(excludedWords);
+    
+    // Update the UI
+    updateWordRowUI(word, !isCurrentlyExcluded);
+    recalculateAllPercentages();
+    updateWordCounts();
+}
+
+// Update a single word row's UI
+function updateWordRowUI(word, isExcluded) {
+    const row = document.querySelector(`tr[data-word="${word}"]`);
+    if (!row) return;
+    
+    const button = row.querySelector('.toggle-btn');
+    const icon = button.querySelector('i');
+    const span = button.querySelector('span');
+    
+    if (isExcluded) {
+        row.classList.add('table-warning');
+        button.className = 'btn btn-warning btn-sm toggle-btn';
+        button.title = 'Click to include this word';
+        icon.className = 'fas fa-eye-slash fa-xs';
+        span.textContent = 'Excluded';
+    } else {
+        row.classList.remove('table-warning');
+        button.className = 'btn btn-success btn-sm toggle-btn';
+        button.title = 'Click to exclude this word';
+        icon.className = 'fas fa-check fa-xs';
+        span.textContent = 'Included';
+    }
+}
+
+// Toggle all words inclusion/exclusion
+function toggleAllWords(include) {
+    const rows = document.querySelectorAll('#wordTableBody tr');
+    const excludedWords = include ? [] : Array.from(rows).map(row => row.dataset.word);
+    
+    saveExcludedWords(excludedWords);
+    
+    // Update all row UIs
+    rows.forEach(row => {
+        const word = row.dataset.word;
+        updateWordRowUI(word, !include);
+    });
+    
+    recalculateAllPercentages();
+    updateWordCounts();
+}
+
+// Calculate adjusted percentage for a word
+function calculateAdjustedPercentage(word, frequency) {
+    if (!wordFrequencies || !wordFrequencies.word_frequencies) return 0;
+    
+    const excludedWords = getExcludedWords();
+    
+    // Calculate total frequency of included words only
+    let includedTotal = 0;
+    wordFrequencies.word_frequencies.forEach(item => {
+        if (!excludedWords.includes(item.word)) {
+            includedTotal += item.frequency;
+        }
+    });
+    
+    // If this word is excluded, return 0
+    if (excludedWords.includes(word)) {
+        return 0;
+    }
+    
+    // Calculate percentage based on included words only
+    if (includedTotal === 0) return 0;
+    return ((frequency / includedTotal) * 100).toFixed(4);
+}
+
+// Recalculate all percentages in the table
+function recalculateAllPercentages() {
+    const rows = document.querySelectorAll('#wordTableBody tr');
+    
+    rows.forEach(row => {
+        const word = row.dataset.word;
+        const frequency = parseInt(row.dataset.frequency);
+        const percentageCell = row.querySelector('td[data-original-percentage]');
+        
+        const adjustedPercentage = calculateAdjustedPercentage(word, frequency);
+        percentageCell.textContent = `${adjustedPercentage}%`;
+    });
+}
+
+// Update word counts display
+function updateWordCounts() {
+    if (!wordFrequencies || !wordFrequencies.word_frequencies) return;
+    
+    const excludedWords = getExcludedWords();
+    const totalWords = wordFrequencies.word_frequencies.length;
+    const excludedCount = excludedWords.length;
+    const includedCount = totalWords - excludedCount;
+    
+    // Update count displays
+    const totalElement = document.getElementById('totalWordsCount');
+    const includedElement = document.getElementById('includedWordsCount');
+    const excludedElement = document.getElementById('excludedWordsCount');
+    
+    if (totalElement) totalElement.textContent = totalWords.toLocaleString();
+    if (includedElement) includedElement.textContent = includedCount.toLocaleString();
+    if (excludedElement) excludedElement.textContent = excludedCount.toLocaleString();
+}
+
+// Filter functions for showing different word sets
+let currentFilter = 'all'; // 'all', 'included', 'excluded'
+
+function showAllWords() {
+    currentFilter = 'all';
+    applyCurrentFilter();
+    updateFilterButtonStyles();
+}
+
+function showExcludedWords() {
+    currentFilter = 'excluded';
+    applyCurrentFilter();
+    updateFilterButtonStyles();
+}
+
+function showIncludedWords() {
+    currentFilter = 'included';
+    applyCurrentFilter();
+    updateFilterButtonStyles();
+}
+
+function applyCurrentFilter() {
+    const excludedWords = getExcludedWords();
+    const rows = document.querySelectorAll('#wordTableBody tr');
+    
+    rows.forEach(row => {
+        const word = row.dataset.word;
+        const isExcluded = excludedWords.includes(word);
+        
+        let show = true;
+        if (currentFilter === 'excluded' && !isExcluded) show = false;
+        if (currentFilter === 'included' && isExcluded) show = false;
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+function updateFilterButtonStyles() {
+    // Reset all buttons
+    document.querySelectorAll('.btn-group button').forEach(btn => {
+        btn.className = btn.className.replace(/btn-secondary|btn-warning|btn-success/, 'btn-outline-secondary');
+    });
+    
+    // Highlight active button
+    const buttons = document.querySelectorAll('.btn-group button');
+    if (currentFilter === 'all' && buttons[0]) {
+        buttons[0].className = buttons[0].className.replace('btn-outline-secondary', 'btn-secondary');
+    } else if (currentFilter === 'excluded' && buttons[1]) {
+        buttons[1].className = buttons[1].className.replace('btn-outline-secondary', 'btn-warning');
+    } else if (currentFilter === 'included' && buttons[2]) {
+        buttons[2].className = buttons[2].className.replace('btn-outline-secondary', 'btn-success');
+    }
 }
 </script>
 {% endblock %}
