@@ -522,20 +522,17 @@ def api_word_frequencies():
         
         combined_df = pd.concat(data_frames, ignore_index=True)
         
-        # Extract text for frequency analysis
-        text_columns = ['Task Name', 'Category', 'Project', 'Employees']
-        all_text = []
-        
-        for col in text_columns:
-            if col in combined_df.columns:
-                all_text.extend(combined_df[col].fillna('').astype(str).tolist())
+        # Extract text for frequency analysis - ONLY from Task Name column
+        task_descriptions = []
+        if 'Task Name' in combined_df.columns:
+            task_descriptions = combined_df['Task Name'].fillna('').astype(str).tolist()
         
         # Simple word frequency counting
         from collections import Counter
         import re
         
-        # Combine all text and extract words
-        combined_text = ' '.join(all_text).lower()
+        # Combine all task descriptions and extract words
+        combined_text = ' '.join(task_descriptions).lower()
         words = re.findall(r'\b[a-zA-Z]{3,}\b', combined_text)  # Words with 3+ letters
         
         # Filter out common stop words
@@ -566,6 +563,115 @@ def api_word_frequencies():
             'word_frequencies': word_data,
             'total_words': total_words,
             'unique_words': len(word_data)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route('/api/categorical_analysis')
+def api_categorical_analysis():
+    """API endpoint for categorical data analysis (employees, categories, projects, duration)"""
+    if not train_model_if_needed():
+        return jsonify({'error': 'Could not load or train model'})
+    
+    try:
+        # Load training data for categorical analysis
+        training_folder = 'training-data'
+        data_frames = []
+        
+        if os.path.exists(training_folder):
+            for filename in os.listdir(training_folder):
+                if filename.endswith(('.csv', '.xlsx')):
+                    file_path = os.path.join(training_folder, filename)
+                    if filename.endswith('.csv'):
+                        df = pd.read_csv(file_path, encoding='utf-8-sig')
+                    else:
+                        df = pd.read_excel(file_path, engine='openpyxl')
+                    data_frames.append(df)
+        
+        if not data_frames:
+            return jsonify({'error': 'No training data found'})
+        
+        combined_df = pd.concat(data_frames, ignore_index=True)
+        
+        categorical_data = {}
+        
+        # Analyze Employees
+        if 'Employees' in combined_df.columns:
+            employee_counts = combined_df['Employees'].value_counts().head(20)
+            categorical_data['employees'] = [
+                {'name': str(emp), 'count': int(count)} 
+                for emp, count in employee_counts.items()
+            ]
+        
+        # Analyze Categories
+        if 'Category' in combined_df.columns:
+            category_counts = combined_df['Category'].value_counts()
+            categorical_data['categories'] = [
+                {'name': str(cat), 'count': int(count)} 
+                for cat, count in category_counts.items()
+            ]
+        
+        # Analyze Projects
+        if 'Project' in combined_df.columns:
+            project_counts = combined_df['Project'].value_counts().head(15)
+            categorical_data['projects'] = [
+                {'name': str(proj), 'count': int(count)} 
+                for proj, count in project_counts.items()
+            ]
+        
+        # Analyze Task Types
+        if 'Type' in combined_df.columns:
+            type_counts = combined_df['Type'].value_counts()
+            categorical_data['task_types'] = [
+                {'name': str(task_type), 'count': int(count)} 
+                for task_type, count in type_counts.items()
+            ]
+        
+        # Analyze Duration if available
+        duration_stats = {}
+        for duration_col in ['Duration (decimal)', 'Duration(h)']:
+            if duration_col in combined_df.columns:
+                duration_data = pd.to_numeric(combined_df[duration_col], errors='coerce').dropna()
+                if len(duration_data) > 0:
+                    duration_stats[duration_col] = {
+                        'total_hours': float(duration_data.sum()),
+                        'avg_hours': float(duration_data.mean()),
+                        'median_hours': float(duration_data.median()),
+                        'min_hours': float(duration_data.min()),
+                        'max_hours': float(duration_data.max()),
+                        'std_hours': float(duration_data.std()),
+                        'count': int(len(duration_data))
+                    }
+                    break
+        
+        if duration_stats:
+            categorical_data['duration_stats'] = duration_stats
+        
+        # General statistics
+        categorical_data['total_records'] = len(combined_df)
+        categorical_data['date_range'] = {
+            'total_records': len(combined_df)
+        }
+        
+        # Add date range if date columns exist
+        date_columns = ['Date', 'Start Date', 'End Date', 'Created Date']
+        for date_col in date_columns:
+            if date_col in combined_df.columns:
+                try:
+                    dates = pd.to_datetime(combined_df[date_col], errors='coerce').dropna()
+                    if len(dates) > 0:
+                        categorical_data['date_range'].update({
+                            'start_date': dates.min().strftime('%Y-%m-%d'),
+                            'end_date': dates.max().strftime('%Y-%m-%d'),
+                            'total_days': (dates.max() - dates.min()).days
+                        })
+                        break
+                except:
+                    continue
+        
+        return jsonify({
+            'success': True,
+            'categorical_data': categorical_data
         })
     except Exception as e:
         return jsonify({'error': str(e)})

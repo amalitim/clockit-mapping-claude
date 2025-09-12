@@ -21,7 +21,12 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="wordcloud-tab" data-bs-toggle="tab" data-bs-target="#wordcloud-pane" type="button" role="tab">
-                    <i class="fas fa-list"></i> Word Frequency
+                    <i class="fas fa-list"></i> Task Word Analysis
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="categorical-tab" data-bs-toggle="tab" data-bs-target="#categorical-pane" type="button" role="tab">
+                    <i class="fas fa-chart-pie"></i> Categorical Analysis
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -61,14 +66,14 @@
                 </div>
             </div>
 
-            <!-- Word Frequency Table Tab -->
+            <!-- Task Word Analysis Tab -->
             <div class="tab-pane fade" id="wordcloud-pane" role="tabpanel">
                 <div class="card">
                     <div class="card-header">
                         <h5 class="card-title mb-0">
-                            <i class="fas fa-list"></i> Word Frequency Analysis
+                            <i class="fas fa-list"></i> Task Description Word Analysis
                         </h5>
-                        <small class="text-muted">All words/phrases with occurrence counts and percentages</small>
+                        <small class="text-muted">Word frequency analysis from Task Name column only</small>
                     </div>
                     <div class="card-body">
                         <div id="wordFrequencyContainer">
@@ -77,6 +82,28 @@
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
                                 <p class="mt-2 text-muted">Loading word frequencies...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categorical Analysis Tab -->
+            <div class="tab-pane fade" id="categorical-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-pie"></i> Categorical Data Analysis
+                        </h5>
+                        <small class="text-muted">Employee, Category, Project, and Duration analysis</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="categoricalContainer">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading categorical analysis...</p>
                             </div>
                         </div>
                     </div>
@@ -241,6 +268,7 @@
 <script>
 let gridData = null;
 let wordFrequencies = null;
+let categoricalData = null;
 let featureImportance = null;
 let modelInfo = null;
 
@@ -250,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load other tabs when clicked
     document.getElementById('wordcloud-tab').addEventListener('click', () => loadWordFrequencyTable());
+    document.getElementById('categorical-tab').addEventListener('click', () => loadCategoricalAnalysis());
     document.getElementById('classes-tab').addEventListener('click', () => loadClassAnalysis());
     document.getElementById('model-tab').addEventListener('click', () => loadModelInfo());
 });
@@ -263,6 +292,7 @@ document.getElementById('refreshBtn').addEventListener('click', function() {
     // Clear cached data
     gridData = null;
     wordFrequencies = null;
+    categoricalData = null;
     featureImportance = null;
     modelInfo = null;
     
@@ -270,6 +300,7 @@ document.getElementById('refreshBtn').addEventListener('click', function() {
     const activeTab = document.querySelector('.nav-link.active');
     if (activeTab.id === 'grid-tab') loadFeatureGrid();
     else if (activeTab.id === 'wordcloud-tab') loadWordFrequencyTable();
+    else if (activeTab.id === 'categorical-tab') loadCategoricalAnalysis();
     else if (activeTab.id === 'classes-tab') loadClassAnalysis();
     else if (activeTab.id === 'model-tab') loadModelInfo();
     
@@ -542,6 +573,252 @@ function filterWordTable(searchTerm) {
             row.style.display = 'none';
         }
     });
+}
+
+function loadCategoricalAnalysis() {
+    if (categoricalData) {
+        renderCategoricalAnalysis();
+        return;
+    }
+    
+    fetch('/api/categorical_analysis')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                categoricalData = data.categorical_data;
+                renderCategoricalAnalysis();
+            } else {
+                document.getElementById('categoricalContainer').innerHTML = 
+                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            document.getElementById('categoricalContainer').innerHTML = 
+                `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+        });
+}
+
+function renderCategoricalAnalysis() {
+    if (!categoricalData) return;
+    
+    const container = document.getElementById('categoricalContainer');
+    let html = '<div class="row">';
+    
+    // Duration Statistics (if available)
+    if (categoricalData.duration_stats) {
+        const durKey = Object.keys(categoricalData.duration_stats)[0];
+        const durStats = categoricalData.duration_stats[durKey];
+        
+        html += `
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-clock"></i> Duration Statistics</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="text-center p-2 bg-light rounded">
+                                    <div class="fw-bold text-primary">${durStats.total_hours.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</div>
+                                    <small class="text-muted">Total Hours</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-2 bg-light rounded">
+                                    <div class="fw-bold text-success">${durStats.avg_hours.toFixed(2)}</div>
+                                    <small class="text-muted">Average Hours</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-2 bg-light rounded">
+                                    <div class="fw-bold text-info">${durStats.median_hours.toFixed(2)}</div>
+                                    <small class="text-muted">Median Hours</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-2 bg-light rounded">
+                                    <div class="fw-bold text-secondary">${durStats.count.toLocaleString()}</div>
+                                    <small class="text-muted">Records</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <strong>Range:</strong> ${durStats.min_hours.toFixed(2)} - ${durStats.max_hours.toFixed(2)} hours
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Dataset Overview
+    html += `
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-database"></i> Dataset Overview</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="display-6 fw-bold text-primary">${categoricalData.total_records.toLocaleString()}</div>
+                        <div class="text-muted">Total Records</div>
+                    </div>
+                    ${categoricalData.date_range && categoricalData.date_range.start_date ? `
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <strong>Date Range:</strong><br>
+                                ${categoricalData.date_range.start_date} to ${categoricalData.date_range.end_date}<br>
+                                <span class="badge bg-secondary">${categoricalData.date_range.total_days} days</span>
+                            </small>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    html += '</div><div class="row">';
+    
+    // Categories
+    if (categoricalData.categories) {
+        html += `
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-tags"></i> Categories</h6>
+                    </div>
+                    <div class="card-body">
+                        <div style="max-height: 300px; overflow-y: auto;">
+        `;
+        
+        categoricalData.categories.forEach((cat, idx) => {
+            const percentage = ((cat.count / categoricalData.total_records) * 100).toFixed(1);
+            html += `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="fw-bold">${cat.name}</span>
+                    <div class="text-end">
+                        <span class="badge bg-primary">${cat.count.toLocaleString()}</span>
+                        <small class="text-muted ms-1">${percentage}%</small>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Task Types
+    if (categoricalData.task_types) {
+        html += `
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-tasks"></i> Task Types</h6>
+                    </div>
+                    <div class="card-body">
+                        <div style="max-height: 300px; overflow-y: auto;">
+        `;
+        
+        categoricalData.task_types.forEach((type, idx) => {
+            const percentage = ((type.count / categoricalData.total_records) * 100).toFixed(1);
+            const hue = (idx * 360 / categoricalData.task_types.length);
+            html += `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="fw-bold">${type.name}</span>
+                    <div class="text-end">
+                        <span class="badge" style="background: hsl(${hue}, 70%, 50%)">${type.count.toLocaleString()}</span>
+                        <small class="text-muted ms-1">${percentage}%</small>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '</div><div class="row">';
+    
+    // Top Projects
+    if (categoricalData.projects) {
+        html += `
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-project-diagram"></i> Top Projects</h6>
+                    </div>
+                    <div class="card-body">
+                        <div style="max-height: 300px; overflow-y: auto;">
+        `;
+        
+        categoricalData.projects.forEach((proj, idx) => {
+            const percentage = ((proj.count / categoricalData.total_records) * 100).toFixed(1);
+            html += `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="fw-bold">${proj.name}</span>
+                    <div class="text-end">
+                        <span class="badge bg-info">${proj.count.toLocaleString()}</span>
+                        <small class="text-muted ms-1">${percentage}%</small>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Top Employees
+    if (categoricalData.employees) {
+        html += `
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-users"></i> Top Contributors</h6>
+                    </div>
+                    <div class="card-body">
+                        <div style="max-height: 300px; overflow-y: auto;">
+        `;
+        
+        categoricalData.employees.forEach((emp, idx) => {
+            const percentage = ((emp.count / categoricalData.total_records) * 100).toFixed(1);
+            html += `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="fw-bold">${emp.name}</span>
+                    <div class="text-end">
+                        <span class="badge bg-success">${emp.count.toLocaleString()}</span>
+                        <small class="text-muted ms-1">${percentage}%</small>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    
+    container.innerHTML = html;
 }
 
 function loadClassAnalysis() {
