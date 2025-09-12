@@ -342,6 +342,7 @@
 {% block scripts %}
 <script>
 let currentFile = null;
+let serverFilename = null;
 let currentPredictions = null;
 let editingRowIndex = null;
 let originalPredictions = null;
@@ -399,6 +400,9 @@ document.getElementById('uploadBtn').addEventListener('click', function() {
                 </div>
             `;
             
+            // Store the server filename
+            serverFilename = data.filename;
+            
             // Show file info and enable prediction
             showFileInfo(data.file_info);
             document.getElementById('predictionsSection').classList.remove('d-none');
@@ -427,7 +431,7 @@ document.getElementById('uploadBtn').addEventListener('click', function() {
 
 // Predict button handler
 document.getElementById('predictBtn').addEventListener('click', function() {
-    if (!currentFile) return;
+    if (!currentFile || !serverFilename) return;
     
     const btn = this;
     btn.disabled = true;
@@ -439,7 +443,7 @@ document.getElementById('predictBtn').addEventListener('click', function() {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            filename: currentFile.name
+            filename: serverFilename
         })
     })
     .then(response => response.json())
@@ -466,9 +470,9 @@ document.getElementById('predictBtn').addEventListener('click', function() {
 
 // Download button handler
 document.getElementById('downloadBtn').addEventListener('click', function() {
-    if (!currentFile) return;
+    if (!serverFilename) return;
     
-    window.location.href = '/download/' + currentFile.name;
+    window.location.href = '/download/predicted_claude_' + serverFilename;
 });
 
 function showFileInfo(fileInfo) {
@@ -769,7 +773,7 @@ document.getElementById('saveEditBtn').addEventListener('click', function() {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            filename: currentFile.name,
+            filename: serverFilename,
             row_index: editingRowIndex,
             new_type: newType
         })

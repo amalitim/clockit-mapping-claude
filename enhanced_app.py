@@ -356,9 +356,29 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
+        # Load the file to get basic info
+        try:
+            if filename.lower().endswith('.csv'):
+                df = pd.read_csv(filepath, encoding='utf-8-sig')
+            else:
+                df = pd.read_excel(filepath, engine='openpyxl')
+            
+            file_info = {
+                'filename': file.filename,  # Original filename for display
+                'row_count': len(df),
+                'columns': list(df.columns)
+            }
+        except Exception as e:
+            file_info = {
+                'filename': file.filename,
+                'row_count': 'Unknown',
+                'columns': []
+            }
+        
         return jsonify({
             'success': True, 
             'filename': filename,
+            'file_info': file_info,
             'message': 'File uploaded successfully'
         })
     else:
