@@ -1,0 +1,897 @@
+{% extends "base.html" %}
+
+{% block title %}Enhanced Task Type Classifier - Model Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="display-4">
+                    <i class="fas fa-brain text-primary"></i>
+                    Enhanced Task Type Classifier
+                </h1>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" onclick="location.href='/predict'">
+                        <i class="fas fa-magic"></i> Predict
+                    </button>
+                    <button type="button" class="btn btn-outline-success" onclick="location.href='/visualize'">
+                        <i class="fas fa-chart-bar"></i> Visualize
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Management Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-pills mb-4" id="main-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="training-tab" data-bs-toggle="pill" data-bs-target="#training" type="button" role="tab">
+                        <i class="fas fa-graduation-cap"></i> Training
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="models-tab" data-bs-toggle="pill" data-bs-target="#models" type="button" role="tab">
+                        <i class="fas fa-database"></i> Model Registry
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="config-tab" data-bs-toggle="pill" data-bs-target="#config" type="button" role="tab">
+                        <i class="fas fa-cogs"></i> Configuration
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="main-tabs-content">
+                
+                <!-- TRAINING TAB -->
+                <div class="tab-pane fade show active" id="training" role="tabpanel">
+                    <div class="row">
+                        <!-- Training Data Info -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-folder-open"></i> Training Data
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="training-files-info">
+                                        <div class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Training Configuration -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-rocket"></i> Training Configuration
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="advanced-training-form">
+                                        <div class="mb-3">
+                                            <label for="config-source" class="form-label">Configuration Source</label>
+                                            <select class="form-select" id="config-source" name="config_source">
+                                                <option value="preset" selected>Use Preset Configuration</option>
+                                                <option value="custom">Custom Configuration</option>
+                                                <option value="model">Base on Existing Model</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Preset Selection -->
+                                        <div id="preset-selection" class="mb-3">
+                                            <label for="preset-name" class="form-label">Configuration Preset</label>
+                                            <select class="form-select" id="preset-name" name="preset_name">
+                                                <option value="enhanced" selected>Enhanced (97.1% accuracy, ~105MB)</option>
+                                                <option value="optimized">Optimized (93.4% accuracy, ~70MB)</option>
+                                                <option value="baseline">Baseline (93.2% accuracy, ~60MB)</option>
+                                                <option value="fast">Fast Training (92% accuracy, ~45MB)</option>
+                                                <option value="ultra_high">Ultra High (97%+ accuracy, ~120MB)</option>
+                                            </select>
+                                            <div class="form-text" id="preset-description">
+                                                High-performance with log_loss criterion (97.1% accuracy, ~105MB)
+                                            </div>
+                                        </div>
+
+                                        <!-- Model Selection -->
+                                        <div id="model-selection" class="mb-3" style="display: none;">
+                                            <label for="base-model" class="form-label">Base Model</label>
+                                            <select class="form-select" id="base-model" name="base_model_id">
+                                                <!-- Populated dynamically -->
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="model-name" class="form-label">Model Name</label>
+                                            <input type="text" class="form-control" id="model-name" name="model_name" 
+                                                   value="enhanced_model" placeholder="Enter model name">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="model-description" class="form-label">Description</label>
+                                            <textarea class="form-control" id="model-description" name="description" 
+                                                      rows="2" placeholder="Optional description"></textarea>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="model-tags" class="form-label">Tags</label>
+                                            <input type="text" class="form-control" id="model-tags" name="tags" 
+                                                   placeholder="production, high-accuracy, enhanced (comma-separated)">
+                                        </div>
+
+                                        <button type="submit" class="btn btn-success w-100" id="train-btn">
+                                            <i class="fas fa-play"></i> Start Training
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Training Progress -->
+                    <div class="row mt-4" id="training-progress" style="display: none;">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-warning">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-cog fa-spin"></i> Training in Progress...
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="progress mb-3">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                             role="progressbar" style="width: 100%"></div>
+                                    </div>
+                                    <div id="training-status">Initializing training...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Training Results -->
+                    <div class="row mt-4" id="training-results" style="display: none;">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-check-circle"></i> Training Completed
+                                    </h5>
+                                </div>
+                                <div class="card-body" id="training-results-content">
+                                    <!-- Results populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODEL REGISTRY TAB -->
+                <div class="tab-pane fade" id="models" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-database"></i> Model Registry</h3>
+                        <button class="btn btn-primary" onclick="refreshModelList()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div id="models-list">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading models...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONFIGURATION TAB -->
+                <div class="tab-pane fade" id="config" role="tabpanel">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-cogs"></i> Custom Configuration
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="custom-config-form">
+                                        <!-- Random Forest Parameters -->
+                                        <h6 class="text-primary mb-3">Random Forest Parameters</h6>
+                                        <div class="row">
+                                            <div class="col-md-4 mb-3">
+                                                <label for="n-estimators" class="form-label">Number of Trees</label>
+                                                <input type="number" class="form-control" id="n-estimators" 
+                                                       value="750" min="100" max="2000" step="50">
+                                                <div class="form-text">More trees = higher accuracy, larger model</div>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="max-depth" class="form-label">Maximum Depth</label>
+                                                <input type="number" class="form-control" id="max-depth" 
+                                                       value="25" min="5" max="50" step="5">
+                                                <div class="form-text">Depth of decision trees</div>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="criterion" class="form-label">Split Criterion</label>
+                                                <select class="form-select" id="criterion">
+                                                    <option value="gini">Gini Impurity</option>
+                                                    <option value="log_loss" selected>Log Loss (Enhanced)</option>
+                                                    <option value="entropy">Entropy</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-4 mb-3">
+                                                <label for="min-samples-split" class="form-label">Min Samples Split</label>
+                                                <input type="number" class="form-control" id="min-samples-split" 
+                                                       value="3" min="2" max="20" step="1">
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="min-samples-leaf" class="form-label">Min Samples Leaf</label>
+                                                <input type="number" class="form-control" id="min-samples-leaf" 
+                                                       value="1" min="1" max="10" step="1">
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="max-samples" class="form-label">Bootstrap Sample %</label>
+                                                <input type="number" class="form-control" id="max-samples" 
+                                                       value="80" min="50" max="100" step="10">
+                                                <div class="form-text">Percentage for bootstrap sampling</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TF-IDF Parameters -->
+                                        <h6 class="text-success mb-3 mt-4">TF-IDF Parameters</h6>
+                                        <div class="row">
+                                            <div class="col-md-4 mb-3">
+                                                <label for="max-features-tfidf" class="form-label">Max Features</label>
+                                                <input type="number" class="form-control" id="max-features-tfidf" 
+                                                       value="3000" min="1000" max="10000" step="500">
+                                                <div class="form-text">Number of TF-IDF features</div>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="ngram-min" class="form-label">Min N-gram</label>
+                                                <input type="number" class="form-control" id="ngram-min" 
+                                                       value="1" min="1" max="3" step="1">
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="ngram-max" class="form-label">Max N-gram</label>
+                                                <input type="number" class="form-control" id="ngram-max" 
+                                                       value="3" min="1" max="5" step="1">
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="min-df" class="form-label">Min Document Frequency</label>
+                                                <input type="number" class="form-control" id="min-df" 
+                                                       value="1" min="1" max="10" step="1">
+                                                <div class="form-text">Minimum document frequency for terms</div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="max-df" class="form-label">Max Document Frequency</label>
+                                                <input type="number" class="form-control" id="max-df" 
+                                                       value="0.9" min="0.5" max="1.0" step="0.05">
+                                                <div class="form-text">Maximum document frequency (0.0-1.0)</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Training Parameters -->
+                                        <h6 class="text-warning mb-3 mt-4">Training Parameters</h6>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="cv-folds" class="form-label">Cross-Validation Folds</label>
+                                                <input type="number" class="form-control" id="cv-folds" 
+                                                       value="15" min="5" max="20" step="5">
+                                                <div class="form-text">Number of CV folds for validation</div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="test-size" class="form-label">Validation Split</label>
+                                                <input type="number" class="form-control" id="test-size" 
+                                                       value="0.2" min="0.1" max="0.4" step="0.05">
+                                                <div class="form-text">Fraction for validation (0.1-0.4)</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-grid gap-2 mt-4">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="loadPresetToCustom('enhanced')">
+                                                <i class="fas fa-download"></i> Load Enhanced Preset
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" onclick="loadPresetToCustom('optimized')">
+                                                <i class="fas fa-download"></i> Load Optimized Preset
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-info-circle"></i> Configuration Guide
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="accordion" id="config-help">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" 
+                                                        data-bs-toggle="collapse" data-bs-target="#performance-tips">
+                                                    Performance Tips
+                                                </button>
+                                            </h2>
+                                            <div id="performance-tips" class="accordion-collapse collapse">
+                                                <div class="accordion-body">
+                                                    <ul class="small">
+                                                        <li><strong>More Trees:</strong> Higher accuracy but larger models</li>
+                                                        <li><strong>Log Loss:</strong> Better probability estimates</li>
+                                                        <li><strong>Bootstrap 80%:</strong> Better generalization</li>
+                                                        <li><strong>3000+ Features:</strong> Good discrimination</li>
+                                                        <li><strong>15-fold CV:</strong> Robust validation</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" 
+                                                        data-bs-toggle="collapse" data-bs-target="#size-tips">
+                                                    Size Optimization
+                                                </button>
+                                            </h2>
+                                            <div id="size-tips" class="accordion-collapse collapse">
+                                                <div class="accordion-body">
+                                                    <ul class="small">
+                                                        <li><strong>500-750 Trees:</strong> Good performance/size balance</li>
+                                                        <li><strong>3000 Features:</strong> Optimal for most cases</li>
+                                                        <li><strong>Depth 20-25:</strong> Prevents overfitting</li>
+                                                        <li><strong>GitHub Limit:</strong> Keep models under 100MB</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Details Modal -->
+<div class="modal fade" id="modelDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Model Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modal-model-details">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="load-model-btn">
+                    <i class="fas fa-download"></i> Load for Predictions
+                </button>
+                <button type="button" class="btn btn-danger" id="delete-model-btn">
+                    <i class="fas fa-trash"></i> Delete Model
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let currentModelId = null;
+let configPresets = {};
+
+// Initialize page
+$(document).ready(function() {
+    loadTrainingFiles();
+    loadConfigPresets();
+    loadModelList();
+    
+    // Handle config source change
+    $('#config-source').change(function() {
+        const source = $(this).val();
+        $('#preset-selection').toggle(source === 'preset');
+        $('#model-selection').toggle(source === 'model');
+        
+        if (source === 'model') {
+            loadModelsForSelection();
+        }
+    });
+    
+    // Handle preset change
+    $('#preset-name').change(function() {
+        updatePresetDescription();
+    });
+    
+    // Handle advanced training form
+    $('#advanced-training-form').submit(function(e) {
+        e.preventDefault();
+        startAdvancedTraining();
+    });
+    
+    updatePresetDescription();
+});
+
+// Load training files info
+function loadTrainingFiles() {
+    $.get('/api/training_files')
+        .done(function(response) {
+            if (response.success) {
+                displayTrainingFiles(response.training_files);
+            } else {
+                $('#training-files-info').html('<div class="alert alert-warning">Error loading training files</div>');
+            }
+        })
+        .fail(function() {
+            $('#training-files-info').html('<div class="alert alert-danger">Failed to load training files</div>');
+        });
+}
+
+// Display training files
+function displayTrainingFiles(files) {
+    if (files.length === 0) {
+        $('#training-files-info').html('<div class="alert alert-warning">No training files found in training-data folder</div>');
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>File</th><th>Type</th><th>Rows</th><th>Size</th></tr></thead><tbody>';
+    
+    let totalRows = 0;
+    files.forEach(file => {
+        html += `<tr>
+            <td><i class="fas fa-file-${file.type === 'csv' ? 'csv' : 'excel'}"></i> ${file.filename}</td>
+            <td><span class="badge bg-${file.type === 'csv' ? 'success' : 'primary'}">${file.type.toUpperCase()}</span></td>
+            <td>${typeof file.rows === 'number' ? file.rows.toLocaleString() : file.rows}</td>
+            <td>${file.size_mb ? file.size_mb + ' MB' : 'N/A'}</td>
+        </tr>`;
+        if (typeof file.rows === 'number') totalRows += file.rows;
+    });
+    
+    html += '</tbody></table></div>';
+    html += `<div class="mt-2"><strong>Total Training Records: ${totalRows.toLocaleString()}</strong></div>`;
+    
+    $('#training-files-info').html(html);
+}
+
+// Load configuration presets
+function loadConfigPresets() {
+    $.get('/api/config_presets')
+        .done(function(response) {
+            if (response.success) {
+                configPresets = response.presets;
+                updatePresetDescription();
+            }
+        });
+}
+
+// Update preset description
+function updatePresetDescription() {
+    const presetName = $('#preset-name').val();
+    if (configPresets[presetName]) {
+        $('#preset-description').text(configPresets[presetName].description);
+    }
+}
+
+// Load models for selection
+function loadModelsForSelection() {
+    $.get('/api/models')
+        .done(function(response) {
+            if (response.success) {
+                let html = '<option value="">Select a base model...</option>';
+                response.models.forEach(model => {
+                    if (model.file_exists) {
+                        html += `<option value="${model.model_id}">${model.name} (${(model.performance.validation_acc * 100).toFixed(1)}%)</option>`;
+                    }
+                });
+                $('#base-model').html(html);
+            }
+        });
+}
+
+// Start advanced training
+function startAdvancedTraining() {
+    const formData = {
+        config_source: $('#config-source').val(),
+        model_name: $('#model-name').val() || 'unnamed_model',
+        description: $('#model-description').val(),
+        tags: $('#model-tags').val().split(',').map(tag => tag.trim()).filter(tag => tag)
+    };
+    
+    if (formData.config_source === 'preset') {
+        formData.preset_name = $('#preset-name').val();
+    } else if (formData.config_source === 'model') {
+        formData.base_model_id = $('#base-model').val();
+        if (!formData.base_model_id) {
+            showAlert('Please select a base model', 'warning');
+            return;
+        }
+    } else if (formData.config_source === 'custom') {
+        formData.config = getCustomConfig();
+    }
+    
+    // Show progress
+    $('#training-progress').show();
+    $('#training-results').hide();
+    $('#train-btn').prop('disabled', true);
+    $('#training-status').text('Starting training with configuration...');
+    
+    // Start training
+    $.ajax({
+        url: '/api/train_advanced',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        timeout: 600000, // 10 minutes timeout
+        success: function(response) {
+            $('#training-progress').hide();
+            $('#train-btn').prop('disabled', false);
+            
+            if (response.success) {
+                displayTrainingResults(response);
+                refreshModelList();
+            } else {
+                showAlert('Training failed: ' + response.message, 'danger');
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#training-progress').hide();
+            $('#train-btn').prop('disabled', false);
+            
+            if (status === 'timeout') {
+                showAlert('Training timed out. The model may still be training in the background.', 'warning');
+            } else {
+                showAlert('Training failed: ' + error, 'danger');
+            }
+        }
+    });
+}
+
+// Get custom configuration from form
+function getCustomConfig() {
+    return {
+        n_estimators: parseInt($('#n-estimators').val()),
+        max_depth: parseInt($('#max-depth').val()),
+        min_samples_split: parseInt($('#min-samples-split').val()),
+        min_samples_leaf: parseInt($('#min-samples-leaf').val()),
+        criterion: $('#criterion').val(),
+        max_samples: $('#max-samples').val() ? parseFloat($('#max-samples').val()) / 100 : null,
+        max_features_tfidf: parseInt($('#max-features-tfidf').val()),
+        ngram_range: [parseInt($('#ngram-min').val()), parseInt($('#ngram-max').val())],
+        min_df: parseInt($('#min-df').val()),
+        max_df: parseFloat($('#max-df').val()),
+        cv_folds: parseInt($('#cv-folds').val()),
+        test_size: parseFloat($('#test-size').val())
+    };
+}
+
+// Display training results
+function displayTrainingResults(response) {
+    const perf = response.performance;
+    let html = `
+        <div class="row">
+            <div class="col-md-8">
+                <h6>Performance Metrics</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="h2 text-success">${(perf.training_accuracy * 100).toFixed(1)}%</div>
+                            <div class="text-muted">Training Accuracy</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="h2 text-primary">${(perf.validation_accuracy * 100).toFixed(1)}%</div>
+                            <div class="text-muted">Validation Accuracy</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="h2 text-info">${(perf.cv_accuracy * 100).toFixed(1)}%</div>
+                            <div class="text-muted">Cross-Validation</div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${perf.oob_accuracy ? `
+                <div class="mt-3">
+                    <strong>Out-of-Bag Accuracy:</strong> ${(perf.oob_accuracy * 100).toFixed(1)}%
+                </div>
+                ` : ''}
+                
+                <div class="mt-3">
+                    <strong>Training Duration:</strong> ${response.training_duration.toFixed(1)} seconds
+                </div>
+            </div>
+            <div class="col-md-4">
+                <h6>Model Information</h6>
+                <p><strong>Model ID:</strong> <code>${response.model_id}</code></p>
+                <p><strong>Status:</strong> <span class="badge bg-success">Ready for Predictions</span></p>
+                <div class="d-grid">
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadModelForPredictions('${response.model_id}')">
+                        <i class="fas fa-magic"></i> Use for Predictions
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#training-results-content').html(html);
+    $('#training-results').show();
+}
+
+// Load model list
+function loadModelList() {
+    $('#models-list').html('<div class="text-center"><div class="spinner-border text-primary"></div></div>');
+    
+    $.get('/api/models')
+        .done(function(response) {
+            if (response.success) {
+                displayModelList(response.models);
+            } else {
+                $('#models-list').html('<div class="alert alert-warning">Error loading models</div>');
+            }
+        })
+        .fail(function() {
+            $('#models-list').html('<div class="alert alert-danger">Failed to load models</div>');
+        });
+}
+
+// Display model list
+function displayModelList(models) {
+    if (models.length === 0) {
+        $('#models-list').html('<div class="alert alert-info">No models found. Train a model to get started.</div>');
+        return;
+    }
+    
+    let html = '<div class="row">';
+    
+    models.forEach(model => {
+        const fileStatus = model.file_exists ? 'text-success' : 'text-danger';
+        const fileIcon = model.file_exists ? 'fa-check-circle' : 'fa-exclamation-triangle';
+        
+        html += `
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">${model.name}</h6>
+                    <i class="fas ${fileIcon} ${fileStatus}"></i>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <small class="text-muted">Training: ${(model.performance.training_acc * 100).toFixed(1)}%</small><br>
+                        <small class="text-muted">Validation: ${(model.performance.validation_acc * 100).toFixed(1)}%</small><br>
+                        <small class="text-muted">CV: ${(model.performance.cv_acc * 100).toFixed(1)}%</small>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Size: ${model.model_size_mb.toFixed(1)} MB</small><br>
+                        <small class="text-muted">Date: ${new Date(model.training_date).toLocaleDateString()}</small>
+                    </div>
+                    ${model.tags.length > 0 ? `
+                    <div class="mb-2">
+                        ${model.tags.map(tag => `<span class="badge bg-secondary me-1">${tag}</span>`).join('')}
+                    </div>
+                    ` : ''}
+                    <div class="btn-group w-100" role="group">
+                        <button class="btn btn-outline-primary btn-sm" onclick="showModelDetails('${model.model_id}')">
+                            <i class="fas fa-info"></i>
+                        </button>
+                        ${model.file_exists ? `
+                        <button class="btn btn-outline-success btn-sm" onclick="loadModelForPredictions('${model.model_id}')">
+                            <i class="fas fa-magic"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    
+    html += '</div>';
+    $('#models-list').html(html);
+}
+
+// Show model details
+function showModelDetails(modelId) {
+    currentModelId = modelId;
+    
+    $.get(`/api/models/${modelId}`)
+        .done(function(response) {
+            if (response.success) {
+                displayModelDetails(response.model);
+                $('#modelDetailsModal').modal('show');
+            } else {
+                showAlert('Error loading model details', 'danger');
+            }
+        });
+}
+
+// Display model details in modal
+function displayModelDetails(model) {
+    const perf = model.performance_metrics;
+    const config = model.config;
+    
+    let html = `
+    <div class="row">
+        <div class="col-md-6">
+            <h6>Performance Metrics</h6>
+            <table class="table table-sm">
+                <tr><td>Training Accuracy</td><td>${(perf.training_accuracy * 100).toFixed(1)}%</td></tr>
+                <tr><td>Validation Accuracy</td><td>${(perf.validation_accuracy * 100).toFixed(1)}%</td></tr>
+                <tr><td>Cross-Validation</td><td>${(perf.cv_accuracy * 100).toFixed(1)}% ± ${(perf.cv_std * 2 * 100).toFixed(1)}%</td></tr>
+                ${perf.oob_accuracy ? `<tr><td>Out-of-Bag</td><td>${(perf.oob_accuracy * 100).toFixed(1)}%</td></tr>` : ''}
+                <tr><td>Training Duration</td><td>${perf.training_duration.toFixed(1)}s</td></tr>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <h6>Model Configuration</h6>
+            <table class="table table-sm">
+                <tr><td>Trees</td><td>${config.n_estimators}</td></tr>
+                <tr><td>Max Depth</td><td>${config.max_depth}</td></tr>
+                <tr><td>Criterion</td><td>${config.criterion}</td></tr>
+                <tr><td>TF-IDF Features</td><td>${config.max_features_tfidf}</td></tr>
+                <tr><td>N-grams</td><td>${config.ngram_range[0]}-${config.ngram_range[1]}</td></tr>
+                <tr><td>CV Folds</td><td>${config.cv_folds}</td></tr>
+            </table>
+        </div>
+    </div>
+    
+    <div class="row mt-3">
+        <div class="col-12">
+            <h6>Dataset Information</h6>
+            <p><strong>Total Samples:</strong> ${model.dataset_info.total_samples.toLocaleString()}</p>
+            <p><strong>Training/Validation:</strong> ${model.dataset_info.training_samples}/${model.dataset_info.validation_samples}</p>
+            <p><strong>Features:</strong> ${model.dataset_info.num_features.toLocaleString()}</p>
+            <p><strong>Classes:</strong> ${model.dataset_info.num_classes} (${model.dataset_info.class_names.join(', ')})</p>
+        </div>
+    </div>
+    
+    ${model.description ? `
+    <div class="row mt-3">
+        <div class="col-12">
+            <h6>Description</h6>
+            <p>${model.description}</p>
+        </div>
+    </div>
+    ` : ''}
+    
+    <div class="row mt-3">
+        <div class="col-12">
+            <h6>Model Information</h6>
+            <p><strong>Model ID:</strong> <code>${model.model_id}</code></p>
+            <p><strong>File Size:</strong> ${model.model_size_mb.toFixed(1)} MB</p>
+            <p><strong>Training Date:</strong> ${new Date(model.training_date).toLocaleString()}</p>
+            <p><strong>File Path:</strong> <code>${model.file_path}</code></p>
+        </div>
+    </div>
+    `;
+    
+    $('#modal-model-details').html(html);
+}
+
+// Load model for predictions
+function loadModelForPredictions(modelId) {
+    $.ajax({
+        url: '/api/load_model',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({model_id: modelId}),
+        success: function(response) {
+            if (response.success) {
+                showAlert('Model loaded successfully for predictions!', 'success');
+                $('#modelDetailsModal').modal('hide');
+            } else {
+                showAlert('Error loading model: ' + response.message, 'danger');
+            }
+        },
+        error: function() {
+            showAlert('Error loading model', 'danger');
+        }
+    });
+}
+
+// Delete model
+$('#delete-model-btn').click(function() {
+    if (!currentModelId) return;
+    
+    if (confirm('Are you sure you want to delete this model? This action cannot be undone.')) {
+        $.ajax({
+            url: `/api/delete_model/${currentModelId}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('Model deleted successfully', 'success');
+                    $('#modelDetailsModal').modal('hide');
+                    refreshModelList();
+                } else {
+                    showAlert('Error deleting model: ' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('Error deleting model', 'danger');
+            }
+        });
+    }
+});
+
+// Load model for predictions from modal
+$('#load-model-btn').click(function() {
+    if (currentModelId) {
+        loadModelForPredictions(currentModelId);
+    }
+});
+
+// Refresh model list
+function refreshModelList() {
+    loadModelList();
+}
+
+// Load preset to custom configuration
+function loadPresetToCustom(presetName) {
+    if (!configPresets[presetName]) return;
+    
+    const config = configPresets[presetName].config;
+    
+    $('#n-estimators').val(config.n_estimators);
+    $('#max-depth').val(config.max_depth);
+    $('#min-samples-split').val(config.min_samples_split);
+    $('#min-samples-leaf').val(config.min_samples_leaf);
+    $('#criterion').val(config.criterion);
+    $('#max-samples').val(config.max_samples ? config.max_samples * 100 : 100);
+    
+    $('#max-features-tfidf').val(config.max_features_tfidf);
+    $('#ngram-min').val(config.ngram_range[0]);
+    $('#ngram-max').val(config.ngram_range[1]);
+    $('#min-df').val(config.min_df);
+    $('#max-df').val(config.max_df);
+    
+    $('#cv-folds').val(config.cv_folds);
+    $('#test-size').val(config.test_size);
+    
+    showAlert(`Loaded ${presetName} preset configuration`, 'info');
+}
+
+// Show alert
+function showAlert(message, type) {
+    const alertHtml = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    `;
+    
+    // Remove existing alerts
+    $('.alert').remove();
+    
+    // Add new alert at the top
+    $('body').prepend(alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+        $('.alert').alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}

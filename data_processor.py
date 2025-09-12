@@ -5,22 +5,39 @@ from sklearn.preprocessing import LabelEncoder
 import os
 
 class DataProcessor:
-    def __init__(self):
-        # High-performance TF-IDF with baseline parameters (same as 500-tree model)
-        self.tfidf = TfidfVectorizer(
-            max_features=3000,          # Same as baseline - optimal feature count for discrimination
-            stop_words='english',       # Remove common English words
-            ngram_range=(1, 3),         # Same as baseline - include trigrams for richer context
-            min_df=1,                   # Reverted to baseline - capture even rare but important terms
-            max_df=0.90,                # Reverted to baseline - less aggressive filtering
-            sublinear_tf=True,          # Apply sublinear tf scaling
-            norm='l2',                  # L2 normalization for better feature scaling
-            use_idf=True,               # Ensure IDF weighting is applied
-            smooth_idf=True,            # Smooth IDF weights to prevent division by zero
-            lowercase=True,             # Ensure consistent casing
-            token_pattern=r'\b[a-zA-Z]{2,}\b'  # Enhanced token pattern - words with 2+ letters
-        )
+    def __init__(self, max_features=3000, ngram_range=(1, 3), min_df=1, max_df=0.90):
+        # Configurable TF-IDF with default baseline parameters
+        self.tfidf_params = {
+            'max_features': max_features,
+            'stop_words': 'english',
+            'ngram_range': ngram_range,
+            'min_df': min_df,
+            'max_df': max_df,
+            'sublinear_tf': True,
+            'norm': 'l2',
+            'use_idf': True,
+            'smooth_idf': True,
+            'lowercase': True,
+            'token_pattern': r'\b[a-zA-Z]{2,}\b'
+        }
+        
+        self.tfidf = TfidfVectorizer(**self.tfidf_params)
         self.label_encoder = LabelEncoder()
+        self.feature_names = []
+    
+    def update_config(self, max_features=None, ngram_range=None, min_df=None, max_df=None):
+        """Update TF-IDF configuration parameters"""
+        if max_features is not None:
+            self.tfidf_params['max_features'] = max_features
+        if ngram_range is not None:
+            self.tfidf_params['ngram_range'] = ngram_range
+        if min_df is not None:
+            self.tfidf_params['min_df'] = min_df
+        if max_df is not None:
+            self.tfidf_params['max_df'] = max_df
+        
+        # Recreate TF-IDF vectorizer with new parameters
+        self.tfidf = TfidfVectorizer(**self.tfidf_params)
         self.feature_names = []
         
     def load_training_data(self, folder_path='training-data'):

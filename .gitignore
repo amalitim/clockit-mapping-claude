@@ -1,5 +1,7 @@
 # Trained model files - will be managed by versioning system
 model.pkl
+enhanced_model_97pct.pkl
+*.pkl
 
 # Python
 __pycache__/

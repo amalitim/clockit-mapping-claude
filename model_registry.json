@@ -1,0 +1,142 @@
+{
+  "enhanced_97_percent_20250912_181056_58de942d": {
+    "model_id": "enhanced_97_percent_20250912_181056_58de942d",
+    "name": "enhanced_97_percent",
+    "config": {
+      "n_estimators": 750,
+      "max_depth": 25,
+      "min_samples_split": 3,
+      "min_samples_leaf": 1,
+      "max_features": "sqrt",
+      "criterion": "log_loss",
+      "bootstrap": true,
+      "max_samples": 0.8,
+      "oob_score": true,
+      "class_weight": "balanced",
+      "random_state": 42,
+      "max_features_tfidf": 3000,
+      "ngram_range": [
+        1,
+        3
+      ],
+      "min_df": 1,
+      "max_df": 0.9,
+      "cv_folds": 15,
+      "test_size": 0.2
+    },
+    "training_date": "2025-09-12T18:10:56.466655",
+    "training_duration": 360.0,
+    "dataset_info": {
+      "total_samples": 7260,
+      "training_samples": 5808,
+      "validation_samples": 1452,
+      "num_features": 3000,
+      "num_classes": 14,
+      "class_names": [
+        "AmaliTech Internal",
+        "Training & Learning",
+        "Team admin",
+        "Holiday",
+        "Governance",
+        "Leave",
+        "Reporting",
+        "Support",
+        "NSP 24-AWS DE Training Project",
+        "Projects",
+        "Planning & Roadmaps",
+        "Brock-Cybersecurity Project",
+        "Brock Accounting ID Maintenance Tool",
+        "Boart Longyear Consulting Project"
+      ],
+      "data_path": "training-data"
+    },
+    "performance_metrics": {
+      "training_accuracy": 0.971,
+      "validation_accuracy": 0.874,
+      "cv_accuracy": 0.813,
+      "cv_std": 0.132,
+      "oob_accuracy": 0.878,
+      "training_duration": 360.0
+    },
+    "model_size_mb": 104.48692798614502,
+    "file_path": "enhanced_model_97pct.pkl",
+    "description": "Enhanced model with log_loss criterion, 97.1% training accuracy, 87.4% validation accuracy. Uses bootstrap sampling (80%) and 15-fold cross-validation.",
+    "tags": [
+      "enhanced",
+      "high-accuracy",
+      "log_loss",
+      "production",
+      "97percent"
+    ]
+  },
+  "optimized_baseline_750_20250912_181056_1120077a": {
+    "model_id": "optimized_baseline_750_20250912_181056_1120077a",
+    "name": "optimized_baseline_750",
+    "config": {
+      "n_estimators": 750,
+      "max_depth": 25,
+      "min_samples_split": 3,
+      "min_samples_leaf": 1,
+      "max_features": "sqrt",
+      "criterion": "gini",
+      "bootstrap": true,
+      "max_samples": null,
+      "oob_score": true,
+      "class_weight": "balanced",
+      "random_state": 42,
+      "max_features_tfidf": 3000,
+      "ngram_range": [
+        1,
+        3
+      ],
+      "min_df": 1,
+      "max_df": 0.9,
+      "cv_folds": 10,
+      "test_size": 0.2
+    },
+    "training_date": "2025-09-12T18:10:56.505093",
+    "training_duration": 240.0,
+    "dataset_info": {
+      "total_samples": 7260,
+      "training_samples": 5808,
+      "validation_samples": 1452,
+      "num_features": 3000,
+      "num_classes": 14,
+      "class_names": [
+        "AmaliTech Internal",
+        "Training & Learning",
+        "Team admin",
+        "Holiday",
+        "Governance",
+        "Leave",
+        "Reporting",
+        "Support",
+        "NSP 24-AWS DE Training Project",
+        "Projects",
+        "Planning & Roadmaps",
+        "Brock-Cybersecurity Project",
+        "Brock Accounting ID Maintenance Tool",
+        "Boart Longyear Consulting Project"
+      ],
+      "data_path": "training-data"
+    },
+    "performance_metrics": {
+      "training_accuracy": 0.934,
+      "validation_accuracy": 0.863,
+      "cv_accuracy": 0.796,
+      "cv_std": 0.154,
+      "oob_accuracy": 0.864,
+      "training_duration": 240.0
+    },
+    "model_size_mb": 0,
+    "file_path": "models/optimized_750_baseline.pkl",
+    "description": "Optimized baseline with 750 trees, 93.4% training accuracy, 86.3% validation accuracy. GitHub-compatible size (~70MB).",
+    "tags": [
+      "baseline",
+      "optimized",
+      "750trees",
+      "github-compatible",
+      "production"
+    ]
+  }
+}
