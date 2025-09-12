@@ -5,6 +5,7 @@ import os
 import json
 import locale
 import time
+import re
 from werkzeug.utils import secure_filename
 from advanced_classifier import AdvancedTaskTypeClassifier, TaskTypeClassifier
 from model_manager import ModelManager, ModelConfig, model_manager
@@ -473,19 +474,386 @@ def api_feature_importance():
             'message': f'Error getting feature importance: {str(e)}'
         })
 
+@app.route('/api/classes')
+def api_classes():
+    """API endpoint to get all available task type classes"""
+    try:
+        if not load_model_if_available():
+            return jsonify({
+                'success': False,
+                'message': 'No trained model available'
+            })
+        
+        # Try to get class distribution, handling both legacy and advanced classifiers
+        classes = []
+        if hasattr(classifier, 'get_class_distribution'):
+            classes = classifier.get_class_distribution()
+            # Convert numpy array to list if needed
+            if hasattr(classes, 'tolist'):
+                classes = classes.tolist()
+        elif hasattr(classifier, 'data_processor') and hasattr(classifier.data_processor, 'label_encoder'):
+            # For legacy classifiers, try to get classes from label encoder
+            if hasattr(classifier.data_processor.label_encoder, 'classes_'):
+                classes = classifier.data_processor.label_encoder.classes_.tolist()
+        
+        if not classes:
+            # Fallback: read directly from training data
+            training_files = [
+                'training-data/Brock_Team_2024.12_to_2025.08_mapped.xlsx',
+                'training-data/mapped_sample_2025.07.31.csv'
+            ]
+            
+            for training_file in training_files:
+                if os.path.exists(training_file):
+                    if training_file.endswith('.xlsx'):
+                        df = pd.read_excel(training_file, engine='openpyxl')
+                    else:
+                        df = pd.read_csv(training_file, encoding='utf-8-sig')
+                    
+                    if 'Type' in df.columns:
+                        classes = sorted(df['Type'].unique().tolist())
+                        break
+        
+        return jsonify({'success': True, 'classes': classes})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/feature_grid')
+def api_feature_grid():
+    """API endpoint for feature importance grid (words vs classes)"""
+    try:
+        if not load_model_if_available():
+            return jsonify({
+                'success': False,
+                'message': 'No trained model available'
+            })
+        
+        # Get feature importance for all classes
+        feature_importance = classifier.get_feature_importance(top_n=25)
+        
+        # Create a comprehensive word list
+        all_words = set()
+        for class_features in feature_importance.values():
+            for word, score in class_features:
+                all_words.add(word)
+        
+        # Create grid data
+        grid_data = []
+        classes = list(feature_importance.keys())
+        
+        for word in sorted(all_words):
+            row = {'word': word}
+            for class_name in classes:
+                # Find score for this word in this class
+                score = 0
+                for feature_word, feature_score in feature_importance[class_name]:
+                    if feature_word == word:
+                        score = feature_score
+                        break
+                row[class_name] = score
+            grid_data.append(row)
+        
+        # Sort by maximum score across all classes
+        grid_data.sort(key=lambda x: max(x[class_name] for class_name in classes), reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'grid_data': grid_data[:20],  # Top 20 words
+            'classes': classes
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/word_frequencies')
+def api_word_frequencies():
+    """API endpoint for word frequency analysis"""
+    try:
+        if not load_model_if_available():
+            return jsonify({
+                'success': False,
+                'message': 'No trained model available'
+            })
+        
+        # Load training data to analyze word frequencies
+        training_folder = 'training-data'
+        data_frames = []
+        
+        if os.path.exists(training_folder):
+            for filename in os.listdir(training_folder):
+                if filename.endswith(('.csv', '.xlsx')):
+                    file_path = os.path.join(training_folder, filename)
+                    if filename.endswith('.csv'):
+                        df = pd.read_csv(file_path, encoding='utf-8-sig')
+                    else:
+                        df = pd.read_excel(file_path, engine='openpyxl')
+                    data_frames.append(df)
+        
+        if not data_frames:
+            return jsonify({
+                'success': False,
+                'message': 'No training data found'
+            })
+        
+        combined_df = pd.concat(data_frames, ignore_index=True)
+        
+        # Extract text for frequency analysis - ONLY from Task Name column
+        task_descriptions = []
+        if 'Task Name' in combined_df.columns:
+            task_descriptions = combined_df['Task Name'].fillna('').astype(str).tolist()
+        
+        # Simple word frequency counting
+        from collections import Counter
+        import re
+        
+        # Combine all task descriptions and extract words
+        combined_text = ' '.join(task_descriptions).lower()
+        words = re.findall(r'\b[a-zA-Z]{3,}\b', combined_text)  # Words with 3+ letters
+        
+        # Filter out common stop words
+        stop_words = {'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 
+                     'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 
+                     'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'who', 'boy',
+                     'did', 'she', 'use', 'her', 'way', 'many', 'oil', 'sit', 'set'}
+        
+        filtered_words = [word for word in words if word not in stop_words and len(word) > 2]
+        word_freq_counter = Counter(filtered_words)
+        
+        # Get ALL words, not just top 50
+        word_freq = word_freq_counter.most_common()  # Get all words
+        total_words = sum(word_freq_counter.values())
+        
+        # Calculate percentages and create response data
+        word_data = []
+        for word, freq in word_freq:
+            percentage = (freq / total_words) * 100
+            word_data.append({
+                'word': word,
+                'frequency': freq,
+                'percentage': round(percentage, 4)
+            })
+        
+        return jsonify({
+            'success': True,
+            'word_frequencies': word_data,
+            'total_words': total_words,
+            'unique_words': len(word_data)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/categorical_analysis')
+def api_categorical_analysis():
+    """API endpoint for categorical data analysis (employees, categories, projects, duration)"""
+    try:
+        if not load_model_if_available():
+            return jsonify({
+                'success': False,
+                'message': 'No trained model available'
+            })
+        
+        # Load training data for categorical analysis
+        training_folder = 'training-data'
+        data_frames = []
+        
+        if os.path.exists(training_folder):
+            for filename in os.listdir(training_folder):
+                if filename.endswith(('.csv', '.xlsx')):
+                    file_path = os.path.join(training_folder, filename)
+                    if filename.endswith('.csv'):
+                        df = pd.read_csv(file_path, encoding='utf-8-sig')
+                    else:
+                        df = pd.read_excel(file_path, engine='openpyxl')
+                    data_frames.append(df)
+        
+        if not data_frames:
+            return jsonify({
+                'success': False,
+                'message': 'No training data found'
+            })
+        
+        combined_df = pd.concat(data_frames, ignore_index=True)
+        
+        categorical_data = {}
+        
+        # Analyze Employees
+        if 'Employees' in combined_df.columns:
+            employee_counts = combined_df['Employees'].value_counts().head(20)
+            categorical_data['employees'] = [
+                {'name': str(emp), 'count': int(count)} 
+                for emp, count in employee_counts.items()
+            ]
+        
+        # Analyze Categories
+        if 'Category' in combined_df.columns:
+            category_counts = combined_df['Category'].value_counts()
+            categorical_data['categories'] = [
+                {'name': str(cat), 'count': int(count)} 
+                for cat, count in category_counts.items()
+            ]
+        
+        # Analyze Projects
+        if 'Project' in combined_df.columns:
+            project_counts = combined_df['Project'].value_counts().head(15)
+            categorical_data['projects'] = [
+                {'name': str(proj), 'count': int(count)} 
+                for proj, count in project_counts.items()
+            ]
+        
+        # Analyze Task Types
+        if 'Type' in combined_df.columns:
+            type_counts = combined_df['Type'].value_counts()
+            categorical_data['task_types'] = [
+                {'name': str(task_type), 'count': int(count)} 
+                for task_type, count in type_counts.items()
+            ]
+        
+        # Analyze Duration if available
+        duration_stats = {}
+        for duration_col in ['Duration (decimal)', 'Duration(h)']:
+            if duration_col in combined_df.columns:
+                duration_data = pd.to_numeric(combined_df[duration_col], errors='coerce').dropna()
+                if len(duration_data) > 0:
+                    duration_stats[duration_col] = {
+                        'total_hours': float(duration_data.sum()),
+                        'avg_hours': float(duration_data.mean()),
+                        'median_hours': float(duration_data.median()),
+                        'min_hours': float(duration_data.min()),
+                        'max_hours': float(duration_data.max()),
+                        'std_hours': float(duration_data.std()),
+                        'count': int(len(duration_data))
+                    }
+                    break
+        
+        if duration_stats:
+            categorical_data['duration_stats'] = duration_stats
+        
+        # General statistics
+        categorical_data['total_records'] = len(combined_df)
+        categorical_data['date_range'] = {
+            'total_records': len(combined_df)
+        }
+        
+        # Add date range if date columns exist
+        date_columns = ['Date', 'Start Date', 'End Date', 'Created Date']
+        for date_col in date_columns:
+            if date_col in combined_df.columns:
+                try:
+                    dates = pd.to_datetime(combined_df[date_col], errors='coerce').dropna()
+                    if len(dates) > 0:
+                        categorical_data['date_range'].update({
+                            'start_date': dates.min().strftime('%Y-%m-%d'),
+                            'end_date': dates.max().strftime('%Y-%m-%d'),
+                            'total_days': (dates.max() - dates.min()).days
+                        })
+                        break
+                except:
+                    continue
+        
+        return jsonify({
+            'success': True,
+            'categorical_data': categorical_data
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/model_info')
+def api_model_info():
+    """API endpoint for model information and statistics"""
+    try:
+        if not load_model_if_available():
+            return jsonify({
+                'success': False,
+                'message': 'No trained model available'
+            })
+        
+        # Get current model configuration if it's an advanced model
+        if hasattr(classifier, 'config'):
+            config = classifier.config
+            model_info = {
+                'algorithm': 'Advanced Random Forest Classifier',
+                'description': f'Ensemble using {config.n_estimators} decision trees with {config.max_features_tfidf} TF-IDF features',
+                'parameters': {
+                    'n_estimators': config.n_estimators,
+                    'max_depth': config.max_depth,
+                    'min_samples_split': config.min_samples_split,
+                    'min_samples_leaf': config.min_samples_leaf,
+                    'max_features': config.max_features,
+                    'bootstrap': config.bootstrap,
+                    'oob_score': config.oob_score,
+                    'class_weight': config.class_weight,
+                    'criterion': config.criterion,
+                    'n_jobs': config.n_jobs,
+                    'random_state': config.random_state
+                },
+                'features': {
+                    'text_vectorization': 'TF-IDF (Term Frequency-Inverse Document Frequency)',
+                    'max_features': config.max_features_tfidf,
+                    'ngram_range': f'({config.ngram_range[0]}, {config.ngram_range[1]})',
+                    'stop_words': 'English stop words removed',
+                    'normalization': 'L2 normalization',
+                    'token_pattern': 'Words with 2+ letters',
+                    'analyzer': 'word-level analysis',
+                    'max_df_threshold': config.max_df
+                }
+            }
+        else:
+            # Fallback for legacy models
+            model_info = {
+                'algorithm': 'Random Forest Classifier',
+                'description': 'Legacy ensemble model',
+                'parameters': {
+                    'n_estimators': 'Unknown',
+                    'max_depth': 'Unknown'
+                },
+                'features': {
+                    'text_vectorization': 'TF-IDF',
+                    'max_features': 'Unknown'
+                }
+            }
+        
+        model_info['preprocessing'] = [
+            'Text fields combined: Employees, Task Name, Category, Project, Billability Status',
+            'Duration fields converted to numeric (if present)',
+            'TF-IDF vectorization with sublinear scaling',
+            'Labels encoded using LabelEncoder'
+        ]
+        
+        # Get classes safely
+        try:
+            if hasattr(classifier, 'get_class_distribution'):
+                classes = classifier.get_class_distribution()
+                model_info['classes'] = classes.tolist() if hasattr(classes, 'tolist') else classes
+            elif hasattr(classifier, 'data_processor') and hasattr(classifier.data_processor, 'label_encoder'):
+                if hasattr(classifier.data_processor.label_encoder, 'classes_'):
+                    model_info['classes'] = classifier.data_processor.label_encoder.classes_.tolist()
+                else:
+                    model_info['classes'] = []
+            else:
+                model_info['classes'] = []
+        except:
+            model_info['classes'] = []
+        model_info['n_features'] = len(classifier.data_processor.feature_names) if hasattr(classifier.data_processor, 'feature_names') else 'Unknown'
+        
+        return jsonify({
+            'success': True,
+            'model_info': model_info
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 # Initialize the application
 def initialize_app():
     """Initialize the application"""
-    print("🌟 Enhanced Task Type Classifier")
+    print("Enhanced Task Type Classifier")
     print("Initializing model manager...")
     
     # Try to load an existing model
     load_model_if_available()
     
     if classifier.is_trained:
-        print("✅ Model loaded successfully")
+        print("Model loaded successfully")
     else:
-        print("⚠️  No trained model found. Please train a model through the web interface.")
+        print("No trained model found. Please train a model through the web interface.")
 
 if __name__ == '__main__':
     initialize_app()
