@@ -9,14 +9,16 @@ from data_processor import DataProcessor
 
 class TaskTypeClassifier:
     def __init__(self):
-        # High-performance RandomForest with baseline parameters + increased trees
+        # Enhanced RandomForest with baseline parameters + optimizations
         self.model = RandomForestClassifier(
             n_estimators=750,           # Increased from baseline 500 for better ensemble performance
             max_depth=25,               # Same as baseline - deep trees for complex patterns
             min_samples_split=3,        # Same as baseline - granular splits
             min_samples_leaf=1,         # Reverted to baseline - finer leaf nodes
             max_features='sqrt',        # Optimal feature selection at each split
+            criterion='log_loss',       # Enhanced criterion for better probability estimates
             bootstrap=True,             # Enable bootstrap sampling for variance reduction
+            max_samples=0.8,            # Bootstrap with 80% samples for better generalization
             oob_score=True,             # Out-of-bag score for additional validation
             class_weight='balanced',    # Handle class imbalance
             n_jobs=-1,                  # Use all CPU cores for faster training
@@ -58,8 +60,8 @@ class TaskTypeClassifier:
         if hasattr(self.model, 'oob_score_') and self.model.oob_score_:
             print(f"Out-of-Bag accuracy: {self.model.oob_score_:.3f}")
         
-        # Cross-validation with more folds for better validation
-        cv_scores = cross_val_score(self.model, X, y, cv=10, scoring='accuracy')
+        # Enhanced cross-validation with more folds for better validation
+        cv_scores = cross_val_score(self.model, X, y, cv=15, scoring='accuracy')
         print(f"Cross-validation accuracy: {cv_scores.mean():.3f} (+/- {cv_scores.std() * 2:.3f})")
         print(f"CV scores per fold: {[f'{score:.3f}' for score in cv_scores]}")
         
