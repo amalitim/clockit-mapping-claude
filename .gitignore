@@ -1,5 +1,5 @@
-# Trained model files (too large for GitHub)
-model.pkl
+# Trained model files - optimized model (39.5MB) is now GitHub compatible
+# model.pkl
 
 # Python
 __pycache__/

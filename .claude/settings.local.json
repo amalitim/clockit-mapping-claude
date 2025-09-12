@@ -11,7 +11,9 @@
       "Bash(curl:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,12 +6,12 @@ import os
 
 class DataProcessor:
     def __init__(self):
-        # Ultra high-performance TF-IDF with maximum feature extraction
+        # Optimized TF-IDF balancing performance with model size for GitHub
         self.tfidf = TfidfVectorizer(
-            max_features=5000,          # Maximum features - increased from 3000 for richest representation
+            max_features=3000,          # Reduced from 5000 - sweet spot for performance/size balance
             stop_words='english',       # Remove common English words
-            ngram_range=(1, 4),         # Extended to 4-grams for maximum context capture
-            min_df=1,                   # Capture all terms including very rare ones
+            ngram_range=(1, 3),         # Reduced from 4-grams to 3-grams for size reduction
+            min_df=2,                   # Increased from 1 to reduce rare terms and vocabulary size
             max_df=0.85,                # More aggressive filtering of very common terms
             sublinear_tf=True,          # Apply sublinear tf scaling
             norm='l2',                  # L2 normalization for better feature scaling
