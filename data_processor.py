@@ -6,19 +6,21 @@ import os
 
 class DataProcessor:
     def __init__(self):
-        # High-performance TF-IDF with maximum feature extraction
+        # Ultra high-performance TF-IDF with maximum feature extraction
         self.tfidf = TfidfVectorizer(
-            max_features=3000,          # Increased from 1500 - more features for better discrimination
+            max_features=5000,          # Maximum features - increased from 3000 for richest representation
             stop_words='english',       # Remove common English words
-            ngram_range=(1, 3),         # Increased from (1,2) to (1,3) - include trigrams for richer context
-            min_df=1,                   # Decreased from 2 - capture even rare but potentially important terms
-            max_df=0.90,                # Decreased from 0.95 - be more aggressive about removing common terms
+            ngram_range=(1, 4),         # Extended to 4-grams for maximum context capture
+            min_df=1,                   # Capture all terms including very rare ones
+            max_df=0.85,                # More aggressive filtering of very common terms
             sublinear_tf=True,          # Apply sublinear tf scaling
             norm='l2',                  # L2 normalization for better feature scaling
             use_idf=True,               # Ensure IDF weighting is applied
             smooth_idf=True,            # Smooth IDF weights to prevent division by zero
             lowercase=True,             # Ensure consistent casing
-            token_pattern=r'\b[a-zA-Z]{2,}\b'  # Enhanced token pattern - words with 2+ letters
+            token_pattern=r'\b[a-zA-Z]{2,}\b',  # Enhanced token pattern - words with 2+ letters
+            analyzer='word',            # Ensure word-level analysis
+            binary=False                # Use term frequency (not just binary presence)
         )
         self.label_encoder = LabelEncoder()
         self.feature_names = []

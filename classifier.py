@@ -9,18 +9,19 @@ from data_processor import DataProcessor
 
 class TaskTypeClassifier:
     def __init__(self):
-        # High-performance RandomForest with optimized parameters for maximum accuracy
+        # Ultra high-performance RandomForest with maximum parameters for best accuracy
         self.model = RandomForestClassifier(
-            n_estimators=500,           # Increased from 200 - more trees for better ensemble performance
-            max_depth=25,               # Increased from 15 - deeper trees for more complex patterns
-            min_samples_split=3,        # Decreased from 5 - allow more granular splits
-            min_samples_leaf=1,         # Decreased from 2 - allow finer leaf nodes
+            n_estimators=1000,          # Maximum trees - doubled from 500 for strongest ensemble
+            max_depth=30,               # Even deeper trees for maximum pattern capture
+            min_samples_split=2,        # Minimum possible - most granular splits
+            min_samples_leaf=1,         # Already at minimum - finest leaf nodes
             max_features='sqrt',        # Optimal feature selection at each split
             bootstrap=True,             # Enable bootstrap sampling for variance reduction
             oob_score=True,             # Out-of-bag score for additional validation
             class_weight='balanced',    # Handle class imbalance
             n_jobs=-1,                  # Use all CPU cores for faster training
-            random_state=42
+            random_state=42,
+            verbose=1                   # Show training progress for 1000 trees
         )
         self.data_processor = DataProcessor()
         self.is_trained = False

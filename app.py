@@ -684,27 +684,30 @@ def api_model_info():
     
     try:
         model_info = {
-            'algorithm': 'High-Performance Random Forest Classifier',
-            'description': 'An optimized ensemble learning method using 500 decision trees with enhanced parameters for maximum accuracy',
+            'algorithm': 'Ultra High-Performance Random Forest Classifier',
+            'description': 'Maximum accuracy ensemble using 1000 decision trees with 5000 TF-IDF features and 4-gram analysis',
             'parameters': {
-                'n_estimators': 500,
-                'max_depth': 25,
-                'min_samples_split': 3,
+                'n_estimators': 1000,
+                'max_depth': 30,
+                'min_samples_split': 2,
                 'min_samples_leaf': 1,
                 'max_features': 'sqrt',
                 'bootstrap': True,
                 'oob_score': True,
                 'class_weight': 'balanced',
                 'n_jobs': -1,
+                'verbose': 1,
                 'random_state': 42
             },
             'features': {
-                'text_vectorization': 'Enhanced TF-IDF (Term Frequency-Inverse Document Frequency)',
-                'max_features': 3000,
-                'ngram_range': '(1, 3) - unigrams, bigrams, and trigrams',
+                'text_vectorization': 'Ultra TF-IDF (Term Frequency-Inverse Document Frequency)',
+                'max_features': 5000,
+                'ngram_range': '(1, 4) - unigrams, bigrams, trigrams, and 4-grams',
                 'stop_words': 'English stop words removed',
                 'normalization': 'L2 normalization',
-                'token_pattern': 'Words with 2+ letters'
+                'token_pattern': 'Words with 2+ letters',
+                'analyzer': 'word-level analysis',
+                'max_df_threshold': '0.85 (aggressive common term filtering)'
             },
             'preprocessing': [
                 'Text fields combined: Employees, Task Name, Category, Project, Billability Status',
