@@ -2,6 +2,8 @@
 
 A comprehensive machine learning application for classifying and analyzing task types from time tracking data. Built with Flask and scikit-learn, featuring an intuitive web interface for training, prediction, and advanced data visualization.
 
+**Latest Update (v2.0.1)**: Enhanced stability with critical bug fixes for model loading compatibility and visualization components.
+
 ## 🌟 Key Features
 
 ### 🤖 Advanced Machine Learning

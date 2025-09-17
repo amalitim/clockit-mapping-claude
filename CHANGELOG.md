@@ -5,6 +5,41 @@ All notable changes to the Task Type Classifier project are documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2025-09-17
+
+### 🐛 Critical Bug Fixes
+
+#### Model Loading Compatibility Issues
+- **Fixed** `AttributeError: 'AdvancedTaskTypeClassifier' object has no attribute 'load_model'`
+- **Added** Type checking in `load_model_if_available()` to handle both TaskTypeClassifier and AdvancedTaskTypeClassifier
+- **Improved** Model registry fallback logic to reinitialize with legacy classifier when needed
+- **Resolved** "No trained model available" errors in visualization endpoints
+
+#### Visualization Page Errors
+- **Fixed** `Error: features.map is not a function` in Class Analysis tab
+- **Corrected** JavaScript data access to properly use `featureImportance.feature_importance` structure
+- **Added** Null safety guards with `|| {}` fallback for undefined data
+- **Enhanced** Error handling in visualization components
+
+#### Tab Navigation and Caching
+- **Fixed** Visualization tabs showing 'undefined' content after page refresh/navigation
+- **Added** `loadActiveTab()` function to detect and load appropriate tab content on page load
+- **Improved** Browser caching and state management for visualization components
+- **Enhanced** Tab refresh button to reload active tab instead of hardcoded defaults
+
+### 🔧 Technical Improvements
+- **Improved** Model loading resilience across different classifier types
+- **Enhanced** Client-side error handling with better user feedback
+- **Optimized** Tab loading performance with intelligent content detection
+
+### 💡 User Experience Enhancements
+- **Resolved** Prediction button validation to properly check file upload status
+- **Fixed** Classification Report tab HTML parsing errors
+- **Improved** Model Information display with comprehensive attribute access
+- **Enhanced** Overall visualization stability and reliability
+
+---
+
 ## [2.0.0] - 2025-01-12
 
 ### 🌟 Major New Features
