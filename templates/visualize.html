@@ -35,6 +35,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="classification-tab" data-bs-toggle="tab" data-bs-target="#classification-pane" type="button" role="tab">
+                    <i class="fas fa-chart-line"></i> Classification Report
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="model-tab" data-bs-toggle="tab" data-bs-target="#model-pane" type="button" role="tab">
                     <i class="fas fa-cogs"></i> Model Information
                 </button>
@@ -126,6 +131,28 @@
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
                                 <p class="mt-2 text-muted">Loading class analysis...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classification Report Tab -->
+            <div class="tab-pane fade" id="classification-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-line"></i> Classification Report
+                        </h5>
+                        <small class="text-muted">Precision, Recall, F1-Score, and Support metrics for each task type</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="classificationReportContainer">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading classification report...</p>
                             </div>
                         </div>
                     </div>
@@ -271,6 +298,7 @@ let wordFrequencies = null;
 let categoricalData = null;
 let featureImportance = null;
 let modelInfo = null;
+let classificationReport = null;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -280,6 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('wordcloud-tab').addEventListener('click', () => loadWordFrequencyTable());
     document.getElementById('categorical-tab').addEventListener('click', () => loadCategoricalAnalysis());
     document.getElementById('classes-tab').addEventListener('click', () => loadClassAnalysis());
+    document.getElementById('classification-tab').addEventListener('click', () => loadClassificationReport());
     document.getElementById('model-tab').addEventListener('click', () => loadModelInfo());
 });
 
@@ -295,6 +324,7 @@ document.getElementById('refreshBtn').addEventListener('click', function() {
     categoricalData = null;
     featureImportance = null;
     modelInfo = null;
+    classificationReport = null;
     
     // Reload current tab
     const activeTab = document.querySelector('.nav-link.active');
@@ -302,6 +332,7 @@ document.getElementById('refreshBtn').addEventListener('click', function() {
     else if (activeTab.id === 'wordcloud-tab') loadWordFrequencyTable();
     else if (activeTab.id === 'categorical-tab') loadCategoricalAnalysis();
     else if (activeTab.id === 'classes-tab') loadClassAnalysis();
+    else if (activeTab.id === 'classification-tab') loadClassificationReport();
     else if (activeTab.id === 'model-tab') loadModelInfo();
     
     setTimeout(() => {
@@ -917,6 +948,241 @@ function createClassChart(className, features) {
             }
         }
     });
+}
+
+function loadClassificationReport() {
+    if (classificationReport) {
+        renderClassificationReport();
+        return;
+    }
+    
+    fetch('/api/class_report')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                classificationReport = data;
+                renderClassificationReport();
+            } else {
+                document.getElementById('classificationReportContainer').innerHTML = 
+                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.message}</div>`;
+            }
+        })
+        .catch(error => {
+            document.getElementById('classificationReportContainer').innerHTML = 
+                `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+        });
+}
+
+function renderClassificationReport() {
+    if (!classificationReport || !classificationReport.classification_report) return;
+    
+    const container = document.getElementById('classificationReportContainer');
+    const report = classificationReport.classification_report;
+    
+    // Extract class metrics (exclude 'accuracy', 'macro avg', 'weighted avg')
+    const classMetrics = {};
+    const summaryMetrics = {};
+    
+    Object.keys(report).forEach(key => {
+        if (!['accuracy', 'macro avg', 'weighted avg'].includes(key)) {
+            classMetrics[key] = report[key];
+        } else if (key !== 'accuracy') {
+            summaryMetrics[key] = report[key];
+        }
+    });
+    
+    let html = '';
+    
+    // Show note if this is from sample data
+    if (classificationReport.note) {
+        html += `
+            <div class="alert alert-info mb-3">
+                <i class="fas fa-info-circle"></i> ${classificationReport.note}
+            </div>
+        `;
+    }
+    
+    // Summary metrics (accuracy, macro avg, weighted avg)
+    if (report.accuracy !== undefined || Object.keys(summaryMetrics).length > 0) {
+        html += `
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Model Performance Summary</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+        `;
+        
+        if (report.accuracy !== undefined) {
+            html += `
+                <div class="col-md-3">
+                    <div class="bg-white p-3 rounded border">
+                        <div class="display-6 fw-bold text-primary">${(report.accuracy * 100).toFixed(1)}%</div>
+                        <div class="text-muted">Overall Accuracy</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        Object.entries(summaryMetrics).forEach(([avgType, metrics]) => {
+            html += `
+                <div class="col-md-3">
+                    <div class="bg-white p-3 rounded border">
+                        <div class="small text-muted mb-1">${avgType.toUpperCase()}</div>
+                        <div><strong>Precision:</strong> ${(metrics.precision * 100).toFixed(1)}%</div>
+                        <div><strong>Recall:</strong> ${(metrics.recall * 100).toFixed(1)}%</div>
+                        <div><strong>F1-Score:</strong> ${(metrics['f1-score'] * 100).toFixed(1)}%</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Detailed table for each task type
+    html += `
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-table"></i> Detailed Metrics by Task Type</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Task Type</th>
+                                <th class="text-center">Precision</th>
+                                <th class="text-center">Recall</th>
+                                <th class="text-center">F1-Score</th>
+                                <th class="text-center">Support</th>
+                                <th class="text-center">Performance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+    `;
+    
+    // Sort classes by f1-score (descending)
+    const sortedClasses = Object.entries(classMetrics).sort((a, b) => 
+        b[1]['f1-score'] - a[1]['f1-score']
+    );
+    
+    sortedClasses.forEach(([className, metrics], index) => {
+        const precision = metrics.precision * 100;
+        const recall = metrics.recall * 100;
+        const f1Score = metrics['f1-score'] * 100;
+        const support = metrics.support;
+        
+        // Determine performance level based on F1-Score
+        let performanceClass, performanceText, performanceIcon;
+        if (f1Score >= 90) {
+            performanceClass = 'text-success';
+            performanceText = 'Excellent';
+            performanceIcon = 'fas fa-check-circle';
+        } else if (f1Score >= 80) {
+            performanceClass = 'text-info';
+            performanceText = 'Good';
+            performanceIcon = 'fas fa-check';
+        } else if (f1Score >= 70) {
+            performanceClass = 'text-warning';
+            performanceText = 'Fair';
+            performanceIcon = 'fas fa-exclamation-triangle';
+        } else {
+            performanceClass = 'text-danger';
+            performanceText = 'Poor';
+            performanceIcon = 'fas fa-times-circle';
+        }
+        
+        // Color for the task type badge
+        const hue = (index * 360 / sortedClasses.length);
+        
+        html += `
+            <tr>
+                <td>
+                    <span class="badge fw-semibold" style="background: hsl(${hue}, 70%, 50%); font-size: 0.9rem;">${className}</span>
+                </td>
+                <td class="text-center">
+                    <span class="fw-semibold">${precision.toFixed(1)}%</span>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-primary" style="width: ${precision}%"></div>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <span class="fw-semibold">${recall.toFixed(1)}%</span>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-success" style="width: ${recall}%"></div>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <span class="fw-semibold">${f1Score.toFixed(1)}%</span>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-info" style="width: ${f1Score}%"></div>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-secondary">${support}</span>
+                </td>
+                <td class="text-center ${performanceClass}">
+                    <i class="${performanceIcon}"></i>
+                    <span class="fw-semibold">${performanceText}</span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add explanations
+    html += `
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-info-circle"></i> Understanding the Metrics</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2"><strong>Precision:</strong> Of all items predicted as this type, how many were actually this type?</li>
+                            <li class="mb-2"><strong>Recall:</strong> Of all actual items of this type, how many were correctly identified?</li>
+                            <li class="mb-2"><strong>F1-Score:</strong> Harmonic mean of precision and recall (overall balance)</li>
+                            <li class="mb-0"><strong>Support:</strong> Number of actual samples of this type in the test data</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-line"></i> Performance Levels</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2"><span class="text-success"><i class="fas fa-check-circle"></i> <strong>Excellent:</strong></span> F1-Score ≥ 90%</li>
+                            <li class="mb-2"><span class="text-info"><i class="fas fa-check"></i> <strong>Good:</strong></span> F1-Score 80-89%</li>
+                            <li class="mb-2"><span class="text-warning"><i class="fas fa-exclamation-triangle"></i> <strong>Fair:</strong></span> F1-Score 70-79%</li>
+                            <li class="mb-0"><span class="text-danger"><i class="fas fa-times-circle"></i> <strong>Poor:</strong></span> F1-Score < 70%</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
 }
 
 function loadModelInfo() {

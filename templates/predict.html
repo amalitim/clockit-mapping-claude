@@ -435,8 +435,8 @@ document.getElementById('predictBtn').addEventListener('click', function() {
     console.log('currentFile:', currentFile);
     console.log('serverFilename:', serverFilename);
     
-    if (!currentFile || !serverFilename) {
-        console.error('Missing required data for prediction');
+    if (!serverFilename) {
+        console.error('Missing server filename for prediction');
         alert('Please upload a file first before making predictions.');
         return;
     }
