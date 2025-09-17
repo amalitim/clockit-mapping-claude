@@ -904,7 +904,7 @@ function renderClassAnalysis() {
     const container = document.getElementById('classesContainer');
     let html = '';
     
-    Object.entries(featureImportance).forEach(([className, features]) => {
+    Object.entries(featureImportance.feature_importance || {}).forEach(([className, features]) => {
         html += `
             <div class="class-feature-card">
                 <div class="card-header">
@@ -934,7 +934,7 @@ function renderClassAnalysis() {
     container.innerHTML = html;
     
     // Create charts
-    Object.entries(featureImportance).forEach(([className, features]) => {
+    Object.entries(featureImportance.feature_importance || {}).forEach(([className, features]) => {
         createClassChart(className, features.slice(0, 5));
     });
 }
