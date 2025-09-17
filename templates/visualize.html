@@ -35,13 +35,8 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="classification-tab" data-bs-toggle="tab" data-bs-target="#classification-pane" type="button" role="tab">
-                    <i class="fas fa-chart-line"></i> Classification Report
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="model-tab" data-bs-toggle="tab" data-bs-target="#model-pane" type="button" role="tab">
-                    <i class="fas fa-cogs"></i> Model Information
+                <button class="nav-link" id="model-analysis-tab" data-bs-toggle="tab" data-bs-target="#model-analysis-pane" type="button" role="tab">
+                    <i class="fas fa-brain"></i> Model Analysis
                 </button>
             </li>
         </ul>
@@ -137,44 +132,49 @@
                 </div>
             </div>
 
-            <!-- Classification Report Tab -->
-            <div class="tab-pane fade" id="classification-pane" role="tabpanel">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-chart-line"></i> Classification Report
-                        </h5>
-                        <small class="text-muted">Precision, Recall, F1-Score, and Support metrics for each task type</small>
-                    </div>
-                    <div class="card-body">
-                        <div id="classificationReportContainer">
-                            <div class="text-center py-4">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+            <!-- Model Analysis Tab (Combined Classification Report + Model Information) -->
+            <div class="tab-pane fade" id="model-analysis-pane" role="tabpanel">
+                <div class="row">
+                    <!-- Classification Report Section -->
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-chart-line"></i> Model Performance Metrics
+                                </h5>
+                                <small class="text-light">Precision, Recall, F1-Score, and Support for each task type</small>
+                            </div>
+                            <div class="card-body">
+                                <div id="classificationReportContainer">
+                                    <div class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">Loading classification report...</p>
+                                    </div>
                                 </div>
-                                <p class="mt-2 text-muted">Loading classification report...</p>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Model Information Tab -->
-            <div class="tab-pane fade" id="model-pane" role="tabpanel">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-cogs"></i> Model Information
-                        </h5>
-                        <small class="text-muted">Algorithm details, parameters, and preprocessing</small>
-                    </div>
-                    <div class="card-body">
-                        <div id="modelInfoContainer">
-                            <div class="text-center py-4">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                    <!-- Model Information Section -->
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-cogs"></i> Model Configuration & Details
+                                </h5>
+                                <small class="text-light">Algorithm parameters, features, and preprocessing steps</small>
+                            </div>
+                            <div class="card-body">
+                                <div id="modelInfoContainer">
+                                    <div class="text-center py-4">
+                                        <div class="spinner-border text-info" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">Loading model information...</p>
+                                    </div>
                                 </div>
-                                <p class="mt-2 text-muted">Loading model information...</p>
                             </div>
                         </div>
                     </div>
@@ -302,15 +302,44 @@ let classificationReport = null;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    loadFeatureGrid();
+    // Load data for the currently active tab
+    loadActiveTab();
     
     // Load other tabs when clicked
     document.getElementById('wordcloud-tab').addEventListener('click', () => loadWordFrequencyTable());
     document.getElementById('categorical-tab').addEventListener('click', () => loadCategoricalAnalysis());
     document.getElementById('classes-tab').addEventListener('click', () => loadClassAnalysis());
-    document.getElementById('classification-tab').addEventListener('click', () => loadClassificationReport());
-    document.getElementById('model-tab').addEventListener('click', () => loadModelInfo());
+    document.getElementById('model-analysis-tab').addEventListener('click', () => loadModelAnalysis());
 });
+
+// Function to load data for the currently active tab
+function loadActiveTab() {
+    const activeTab = document.querySelector('.nav-link.active');
+    if (!activeTab) {
+        loadFeatureGrid(); // Default fallback
+        return;
+    }
+    
+    switch(activeTab.id) {
+        case 'grid-tab':
+            loadFeatureGrid();
+            break;
+        case 'wordcloud-tab':
+            loadWordFrequencyTable();
+            break;
+        case 'categorical-tab':
+            loadCategoricalAnalysis();
+            break;
+        case 'classes-tab':
+            loadClassAnalysis();
+            break;
+        case 'model-analysis-tab':
+            loadModelAnalysis();
+            break;
+        default:
+            loadFeatureGrid();
+    }
+}
 
 // Refresh button
 document.getElementById('refreshBtn').addEventListener('click', function() {
@@ -326,14 +355,8 @@ document.getElementById('refreshBtn').addEventListener('click', function() {
     modelInfo = null;
     classificationReport = null;
     
-    // Reload current tab
-    const activeTab = document.querySelector('.nav-link.active');
-    if (activeTab.id === 'grid-tab') loadFeatureGrid();
-    else if (activeTab.id === 'wordcloud-tab') loadWordFrequencyTable();
-    else if (activeTab.id === 'categorical-tab') loadCategoricalAnalysis();
-    else if (activeTab.id === 'classes-tab') loadClassAnalysis();
-    else if (activeTab.id === 'classification-tab') loadClassificationReport();
-    else if (activeTab.id === 'model-tab') loadModelInfo();
+    // Reload current tab using the same logic as page load
+    loadActiveTab();
     
     setTimeout(() => {
         btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
@@ -1301,6 +1324,13 @@ function renderModelInfo() {
     `;
     
     container.innerHTML = html;
+}
+
+// Combined Model Analysis function
+function loadModelAnalysis() {
+    // Load both classification report and model info
+    loadClassificationReport();
+    loadModelInfo();
 }
 
 // === Word Exclusion Management with localStorage ===
