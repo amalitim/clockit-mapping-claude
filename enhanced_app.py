@@ -61,9 +61,18 @@ def load_model_if_available():
             # Fallback to legacy model file
             if os.path.exists('model.pkl'):
                 print("Loading legacy model...")
-                classifier.load_model()
-                print(f"Successfully loaded legacy model. Is trained: {classifier.is_trained}")
-                return True
+                # Check if this is a legacy classifier that has load_model method
+                if hasattr(classifier, 'load_model'):
+                    classifier.load_model()
+                    print(f"Successfully loaded legacy model. Is trained: {classifier.is_trained}")
+                    return True
+                else:
+                    print("Classifier type changed, reinitializing with legacy classifier...")
+                    # Re-initialize with legacy classifier
+                    classifier = TaskTypeClassifier()
+                    classifier.load_model()
+                    print(f"Successfully loaded legacy model. Is trained: {classifier.is_trained}")
+                    return True
             else:
                 print("No legacy model.pkl file found")
                 
