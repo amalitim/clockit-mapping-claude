@@ -47,18 +47,32 @@ def load_model_if_available():
             models = model_manager.get_model_list()
             if models:
                 latest_model = models[0]  # Most recent
+                print(f"Checking latest model: {latest_model['model_id']}")
+                print(f"Model file exists: {latest_model['file_exists']}")
+                
                 if latest_model['file_exists']:
+                    print(f"Loading model from registry: {latest_model['model_id']}")
                     classifier.load_from_registry(latest_model['model_id'])
+                    print(f"Successfully loaded registry model. Is trained: {classifier.is_trained}")
                     return True
+                else:
+                    print(f"Registry model file does not exist: {latest_model.get('file_path', 'Unknown path')}")
             
             # Fallback to legacy model file
             if os.path.exists('model.pkl'):
                 print("Loading legacy model...")
                 classifier.load_model()
+                print(f"Successfully loaded legacy model. Is trained: {classifier.is_trained}")
                 return True
+            else:
+                print("No legacy model.pkl file found")
                 
         except Exception as e:
             print(f"Could not load existing model: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    print(f"Final classifier.is_trained status: {classifier.is_trained}")
     return classifier.is_trained
 
 @app.route('/')
@@ -387,35 +401,70 @@ def upload_file():
 @app.route('/predict_file', methods=['POST'])
 def predict_file():
     """Make predictions on uploaded file"""
+    import traceback
+    
+    print(f"\n=== PREDICT FILE REQUEST RECEIVED ===")
+    print(f"Request method: {request.method}")
+    print(f"Request content type: {request.content_type}")
+    print(f"Request data: {request.get_json()}")
+    
     try:
         # Load model if not loaded
-        if not load_model_if_available():
+        print("Step 1: Loading model...")
+        model_loaded = load_model_if_available()
+        print(f"Model loading result: {model_loaded}")
+        print(f"Classifier is_trained: {classifier.is_trained}")
+        
+        if not model_loaded:
+            error_msg = 'No trained model available. Please train a model first.'
+            print(f"ERROR: {error_msg}")
             return jsonify({
                 'success': False,
-                'message': 'No trained model available. Please train a model first.'
+                'message': error_msg
             })
         
+        print("Step 2: Getting filename from request...")
         filename = request.json.get('filename')
+        print(f"Filename received: {filename}")
+        
         if not filename:
-            return jsonify({'success': False, 'message': 'Filename is required'})
+            error_msg = 'Filename is required'
+            print(f"ERROR: {error_msg}")
+            return jsonify({'success': False, 'message': error_msg})
         
+        print("Step 3: Checking file exists...")
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        if not os.path.exists(filepath):
-            return jsonify({'success': False, 'message': 'File not found'})
+        print(f"Looking for file at: {filepath}")
         
+        if not os.path.exists(filepath):
+            error_msg = f'File not found: {filepath}'
+            print(f"ERROR: {error_msg}")
+            return jsonify({'success': False, 'message': error_msg})
+        
+        print("Step 4: Loading data from file...")
         # Load the data
         if filename.lower().endswith('.csv'):
+            print("Loading CSV file...")
             df = pd.read_csv(filepath, encoding='utf-8-sig')
         else:
+            print("Loading Excel file...")
             df = pd.read_excel(filepath, engine='openpyxl')
         
+        print(f"Data loaded successfully: {len(df)} rows, {len(df.columns)} columns")
+        print(f"Columns: {list(df.columns)}")
+        
+        print("Step 5: Making predictions...")
         # Make predictions
         predictions, confidence_scores = classifier.predict(df)
+        print(f"Predictions generated: {len(predictions)} predictions, {len(confidence_scores)} confidence scores")
+        print(f"Sample predictions: {predictions[:3] if len(predictions) > 3 else predictions}")
         
+        print("Step 6: Adding predictions to dataframe...")
         # Add predictions to dataframe
         df['Predicted_Type'] = predictions
         df['Confidence'] = confidence_scores
         
+        print("Step 7: Saving predictions file...")
         # Save predictions
         output_filename = f"predicted_claude_{filename}"
         output_filepath = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
@@ -425,6 +474,9 @@ def predict_file():
         else:
             df.to_excel(output_filepath, index=False, engine='openpyxl')
         
+        print(f"Predictions saved to: {output_filepath}")
+        
+        print("Step 8: Converting to JSON format...")
         # Convert to JSON-serializable format for response
         predictions_data = []
         for i, row in df.iterrows():
@@ -440,18 +492,35 @@ def predict_file():
                     row_dict[col] = str(val)
             predictions_data.append(row_dict)
         
-        return jsonify({
+        print(f"JSON conversion complete: {len(predictions_data)} records")
+        
+        response_data = {
             'success': True,
             'predictions': predictions_data,
             'output_filename': output_filename,
             'total_predictions': len(predictions_data),
             'message': f'Predictions completed for {len(predictions_data)} records'
-        })
+        }
+        
+        print("Step 9: Sending successful response...")
+        print(f"Response data keys: {list(response_data.keys())}")
+        print(f"=== PREDICT FILE REQUEST COMPLETED SUCCESSFULLY ===\n")
+        
+        return jsonify(response_data)
         
     except Exception as e:
+        error_msg = f'Error making predictions: {str(e)}'
+        print(f"=== PREDICT FILE REQUEST FAILED ===")
+        print(f"ERROR: {error_msg}")
+        print("Full traceback:")
+        traceback.print_exc()
+        print(f"=== END ERROR INFO ===\n")
+        
         return jsonify({
             'success': False,
-            'message': f'Error making predictions: {str(e)}'
+            'message': error_msg,
+            'error_type': type(e).__name__,
+            'traceback': traceback.format_exc()
         })
 
 @app.route('/download/<filename>')
