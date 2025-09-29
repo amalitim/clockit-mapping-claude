@@ -55,72 +55,73 @@ class AdvancedTaskTypeClassifier:
         
         self.model = RandomForestClassifier(**model_params)
     
-    def train(self, 
+    def train(self,
               training_data_path: str = 'training-data',
               model_name: str = 'task_classifier',
               description: str = '',
               tags: list = None,
-              save_model: bool = True) -> Tuple[str, Dict]:
+              save_model: bool = True,
+              selected_files: list = None) -> Tuple[str, Dict]:
         """Train the classifier and register it with the model manager"""
         
         start_time = time.time()
         
-        print(f"🚀 Starting training with configuration:")
+        print(f"Starting training with configuration:")
         print(f"   Trees: {self.config.n_estimators}")
         print(f"   Criterion: {self.config.criterion}")
         print(f"   TF-IDF Features: {self.config.max_features_tfidf}")
         print(f"   N-grams: {self.config.ngram_range}")
         print(f"   Cross-validation folds: {self.config.cv_folds}")
-        
-        print("\\n📁 Loading training data...")
-        df = self.data_processor.load_training_data(training_data_path)
-        
-        print(f"✅ Loaded {len(df)} training samples")
-        print(f"📊 Classes: {df['Type'].unique()}")
-        
+
+        print("\\nLoading training data...")
+        df = self.data_processor.load_training_data(training_data_path, selected_files=selected_files)
+
+        print(f"Loaded {len(df)} training samples")
+        print(f"Classes: {df['Type'].unique()}")
+
         # Preprocess features
-        print("🔧 Preprocessing features...")
+        print("Preprocessing features...")
         X = self.data_processor.preprocess_features(df, is_training=True)
-        
+
         # Encode labels
         y = self.data_processor.encode_labels(df['Type'], is_training=True)
-        
+
         # Split data for validation
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=self.config.test_size, random_state=42, stratify=y
         )
-        
+
         # Train model
-        print(f"🎯 Training classifier with {self.config.n_estimators} trees...")
+        print(f"Training classifier with {self.config.n_estimators} trees...")
         self.model.fit(X_train, y_train)
-        
+
         # Evaluate model
         train_score = self.model.score(X_train, y_train)
         test_score = self.model.score(X_test, y_test)
-        
-        print(f"📈 Training accuracy: {train_score:.3f}")
-        print(f"📈 Validation accuracy: {test_score:.3f}")
-        
+
+        print(f"Training accuracy: {train_score:.3f}")
+        print(f"Validation accuracy: {test_score:.3f}")
+
         # Out-of-Bag Score (if enabled)
         oob_score = None
         if hasattr(self.model, 'oob_score_') and self.model.oob_score_:
             oob_score = self.model.oob_score_
-            print(f"📈 Out-of-Bag accuracy: {oob_score:.3f}")
-        
+            print(f"Out-of-Bag accuracy: {oob_score:.3f}")
+
         # Cross-validation
-        print(f"🔄 Running {self.config.cv_folds}-fold cross-validation...")
+        print(f"Running {self.config.cv_folds}-fold cross-validation...")
         cv_scores = cross_val_score(self.model, X, y, cv=self.config.cv_folds, scoring='accuracy')
         cv_mean = cv_scores.mean()
         cv_std = cv_scores.std()
-        
-        print(f"📈 Cross-validation accuracy: {cv_mean:.3f} (+/- {cv_std * 2:.3f})")
-        print(f"📊 CV scores per fold: {[f'{score:.3f}' for score in cv_scores]}")
-        
+
+        print(f"Cross-validation accuracy: {cv_mean:.3f} (+/- {cv_std * 2:.3f})")
+        print(f"CV scores per fold: {[f'{score:.3f}' for score in cv_scores]}")
+
         # Detailed classification report
         y_pred = self.model.predict(X_test)
         class_names = self.data_processor.get_class_names()
-        
-        print("\\n📋 Classification Report:")
+
+        print("\\nClassification Report:")
         unique_test_classes = np.unique(np.concatenate([y_test, y_pred]))
         test_class_names = [class_names[i] for i in unique_test_classes]
         print(classification_report(y_test, y_pred, target_names=test_class_names, labels=unique_test_classes))
@@ -172,8 +173,8 @@ class AdvancedTaskTypeClassifier:
             with open(model_filepath, 'wb') as f:
                 pickle.dump(model_data, f)
             
-            print(f"💾 Model saved to {model_filepath}")
-            
+            print(f"Model saved to {model_filepath}")
+
             # Register with model manager
             model_id = self.model_manager.register_model(
                 name=model_name,
@@ -185,10 +186,10 @@ class AdvancedTaskTypeClassifier:
                 description=description,
                 tags=tags
             )
-            
-            print(f"📝 Model registered with ID: {model_id}")
-        
-        print(f"✅ Training completed in {training_duration:.1f} seconds")
+
+            print(f"Model registered with ID: {model_id}")
+
+        print(f"Training completed in {training_duration:.1f} seconds")
         
         return model_id, performance_metrics
     
@@ -218,26 +219,26 @@ class AdvancedTaskTypeClassifier:
     
     def load_from_registry(self, model_id: str):
         """Load a model from the model registry"""
-        print(f"📂 Loading model {model_id} from registry...")
-        
+        print(f"Loading model {model_id} from registry...")
+
         metadata = self.model_manager.get_model_metadata(model_id)
         if not metadata:
             raise ValueError(f"Model {model_id} not found in registry")
-        
+
         if not os.path.exists(metadata.file_path):
             raise FileNotFoundError(f"Model file not found: {metadata.file_path}")
-        
+
         # Load model data
         with open(metadata.file_path, 'rb') as f:
             model_data = pickle.load(f)
-        
+
         # Restore state
         self.model = model_data['model']
         self.data_processor = model_data['data_processor']
         self.config = model_data.get('config', ModelConfig())
         self.is_trained = model_data.get('is_trained', True)
-        
-        print(f"✅ Model {model_id} loaded successfully")
+
+        print(f"Model {model_id} loaded successfully")
         print(f"   Performance: {metadata.performance_metrics.get('validation_accuracy', 'N/A'):.1%}")
         print(f"   Training date: {metadata.training_date}")
     
@@ -311,9 +312,9 @@ class TaskTypeClassifier(AdvancedTaskTypeClassifier):
 
 if __name__ == "__main__":
     # Example usage with configuration presets
-    print("🌟 Advanced Task Type Classifier")
+    print("Advanced Task Type Classifier")
     print("Available presets:", list(model_manager.get_config_presets().keys()))
-    
+
     # Train with enhanced preset
     classifier = AdvancedTaskTypeClassifier.from_config_preset('enhanced')
     model_id, metrics = classifier.train(
@@ -321,6 +322,6 @@ if __name__ == "__main__":
         description='Enhanced model with log_loss criterion and bootstrap sampling',
         tags=['enhanced', 'production', 'high-accuracy']
     )
-    
+
     print(f"\\nModel trained and registered: {model_id}")
     print("Validation accuracy:", f"{metrics['validation_accuracy']:.1%}")

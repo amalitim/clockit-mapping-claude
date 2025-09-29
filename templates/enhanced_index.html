@@ -52,12 +52,18 @@
                         <!-- Training Data Info -->
                         <div class="col-md-6">
                             <div class="card h-100">
-                                <div class="card-header bg-info text-white">
+                                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                                     <h5 class="card-title mb-0">
                                         <i class="fas fa-folder-open"></i> Training Data
                                     </h5>
+                                    <button type="button" class="btn btn-light btn-sm" onclick="document.getElementById('training-file-input').click()">
+                                        <i class="fas fa-upload"></i> Upload
+                                    </button>
                                 </div>
                                 <div class="card-body">
+                                    <!-- Hidden file input -->
+                                    <input type="file" id="training-file-input" accept=".csv,.xlsx,.xls" style="display: none;">
+
                                     <div id="training-files-info">
                                         <div class="text-center">
                                             <div class="spinner-border text-primary" role="status">
@@ -408,29 +414,37 @@ $(document).ready(function() {
     loadTrainingFiles();
     loadConfigPresets();
     loadModelList();
-    
+
     // Handle config source change
     $('#config-source').change(function() {
         const source = $(this).val();
         $('#preset-selection').toggle(source === 'preset');
         $('#model-selection').toggle(source === 'model');
-        
+
         if (source === 'model') {
             loadModelsForSelection();
         }
     });
-    
+
     // Handle preset change
     $('#preset-name').change(function() {
         updatePresetDescription();
     });
-    
+
     // Handle advanced training form
     $('#advanced-training-form').submit(function(e) {
         e.preventDefault();
         startAdvancedTraining();
     });
-    
+
+    // Handle training file upload
+    $('#training-file-input').change(function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            uploadTrainingFile(file);
+        }
+    });
+
     updatePresetDescription();
 });
 
@@ -455,25 +469,70 @@ function displayTrainingFiles(files) {
         $('#training-files-info').html('<div class="alert alert-warning">No training files found in training-data folder</div>');
         return;
     }
-    
-    let html = '<div class="table-responsive"><table class="table table-sm">';
-    html += '<thead><tr><th>File</th><th>Type</th><th>Rows</th><th>Size</th></tr></thead><tbody>';
-    
+
+    let html = '<div class="mb-2 d-flex justify-content-between align-items-center">';
+    html += '<small class="text-muted">Select files to include in training:</small>';
+    html += '<div class="btn-group btn-group-sm" role="group">';
+    html += '<button type="button" class="btn btn-outline-secondary" onclick="selectAllTrainingFiles(true)">Select All</button>';
+    html += '<button type="button" class="btn btn-outline-secondary" onclick="selectAllTrainingFiles(false)">Deselect All</button>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th style="width: 30px;"></th><th>File</th><th>Type</th><th>Rows</th><th>Size</th></tr></thead><tbody>';
+
     let totalRows = 0;
-    files.forEach(file => {
+    let selectedRows = 0;
+    files.forEach((file, index) => {
+        // Default to selected (checked) for all files
+        const isChecked = true;
+        const rowCount = typeof file.rows === 'number' ? file.rows : 0;
+
         html += `<tr>
+            <td>
+                <input type="checkbox" class="form-check-input training-file-checkbox"
+                       data-filename="${file.filename}"
+                       data-rows="${rowCount}"
+                       ${isChecked ? 'checked' : ''}
+                       onchange="updateTrainingFileTotals()">
+            </td>
             <td><i class="fas fa-file-${file.type === 'csv' ? 'csv' : 'excel'}"></i> ${file.filename}</td>
             <td><span class="badge bg-${file.type === 'csv' ? 'success' : 'primary'}">${file.type.toUpperCase()}</span></td>
             <td>${typeof file.rows === 'number' ? file.rows.toLocaleString() : file.rows}</td>
             <td>${file.size_mb ? file.size_mb + ' MB' : 'N/A'}</td>
         </tr>`;
-        if (typeof file.rows === 'number') totalRows += file.rows;
+
+        totalRows += rowCount;
+        if (isChecked) selectedRows += rowCount;
     });
-    
+
     html += '</tbody></table></div>';
-    html += `<div class="mt-2"><strong>Total Training Records: ${totalRows.toLocaleString()}</strong></div>`;
-    
+
+    html += '<div class="mt-2">';
+    html += `<div><strong id="selected-files-summary">Selected: ${selectedRows.toLocaleString()} records from ${files.length} files</strong></div>`;
+    html += `<div class="text-muted small">Total Available: ${totalRows.toLocaleString()} records</div>`;
+    html += '</div>';
+
     $('#training-files-info').html(html);
+}
+
+// Select/deselect all training files
+function selectAllTrainingFiles(selectAll) {
+    $('.training-file-checkbox').prop('checked', selectAll);
+    updateTrainingFileTotals();
+}
+
+// Update training file totals when selection changes
+function updateTrainingFileTotals() {
+    let selectedFiles = 0;
+    let selectedRows = 0;
+
+    $('.training-file-checkbox:checked').each(function() {
+        selectedFiles++;
+        selectedRows += parseInt($(this).data('rows')) || 0;
+    });
+
+    $('#selected-files-summary').text(`Selected: ${selectedRows.toLocaleString()} records from ${selectedFiles} files`);
 }
 
 // Load configuration presets
@@ -513,13 +572,25 @@ function loadModelsForSelection() {
 
 // Start advanced training
 function startAdvancedTraining() {
+    // Get selected training files
+    const selectedFiles = [];
+    $('.training-file-checkbox:checked').each(function() {
+        selectedFiles.push($(this).data('filename'));
+    });
+
+    if (selectedFiles.length === 0) {
+        showAlert('Please select at least one training file', 'warning');
+        return;
+    }
+
     const formData = {
         config_source: $('#config-source').val(),
         model_name: $('#model-name').val() || 'unnamed_model',
         description: $('#model-description').val(),
-        tags: $('#model-tags').val().split(',').map(tag => tag.trim()).filter(tag => tag)
+        tags: $('#model-tags').val().split(',').map(tag => tag.trim()).filter(tag => tag),
+        selected_files: selectedFiles  // Add selected files to the request
     };
-    
+
     if (formData.config_source === 'preset') {
         formData.preset_name = $('#preset-name').val();
     } else if (formData.config_source === 'model') {
@@ -665,41 +736,114 @@ function displayModelList(models) {
         $('#models-list').html('<div class="alert alert-info">No models found. Train a model to get started.</div>');
         return;
     }
-    
+
     let html = '<div class="row">';
-    
+
     models.forEach(model => {
         const fileStatus = model.file_exists ? 'text-success' : 'text-danger';
         const fileIcon = model.file_exists ? 'fa-check-circle' : 'fa-exclamation-triangle';
-        
+
+        // Parse date with time
+        const trainingDate = new Date(model.training_date);
+        const dateStr = trainingDate.toLocaleDateString();
+        const timeStr = trainingDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        // Get actual model configuration from API data
+        let configInfo = {};
+        if (model.config) {
+            configInfo.estimators = model.config.n_estimators || 'N/A';
+            configInfo.features = model.config.max_features_tfidf || 'N/A';
+            configInfo.cvFolds = model.config.cv_folds || 'N/A';
+            configInfo.maxDepth = model.config.max_depth || 'N/A';
+            configInfo.criterion = model.config.criterion || 'N/A';
+            configInfo.ngramRange = model.config.ngram_range || 'N/A';
+        } else {
+            // Fallback for older models without config data
+            configInfo.estimators = 'N/A';
+            configInfo.features = 'N/A';
+            configInfo.cvFolds = 'N/A';
+            configInfo.maxDepth = 'N/A';
+            configInfo.criterion = 'N/A';
+            configInfo.ngramRange = 'N/A';
+        }
+
         html += `
         <div class="col-md-6 col-lg-4 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">${model.name}</h6>
+                    <h6 class="mb-0 text-truncate" title="${model.name}">${model.name}</h6>
                     <i class="fas ${fileIcon} ${fileStatus}"></i>
                 </div>
                 <div class="card-body">
+                    <!-- Performance Metrics -->
                     <div class="mb-2">
-                        <small class="text-muted">Training: ${(model.performance.training_acc * 100).toFixed(1)}%</small><br>
-                        <small class="text-muted">Validation: ${(model.performance.validation_acc * 100).toFixed(1)}%</small><br>
-                        <small class="text-muted">CV: ${(model.performance.cv_acc * 100).toFixed(1)}%</small>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="h6 mb-0 text-success">${(model.performance.training_acc * 100).toFixed(1)}%</div>
+                                <small class="text-muted">Train</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h6 mb-0 text-primary">${(model.performance.validation_acc * 100).toFixed(1)}%</div>
+                                <small class="text-muted">Valid</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h6 mb-0 text-info">${(model.performance.cv_acc * 100).toFixed(1)}%</div>
+                                <small class="text-muted">CV</small>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Model Configuration -->
+                    <div class="mb-2">
+                        <div class="small fw-bold text-muted mb-1">Configuration</div>
+                        <table class="table table-sm table-borderless mb-0" style="font-size: 0.7rem;">
+                            <tr>
+                                <td class="text-muted py-0" style="width: 45%;">Trees:</td>
+                                <td class="py-0"><strong>${configInfo.estimators}</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-0">Features:</td>
+                                <td class="py-0"><strong>${configInfo.features}</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-0">CV Folds:</td>
+                                <td class="py-0"><strong>${configInfo.cvFolds}</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-0">Depth:</td>
+                                <td class="py-0">${configInfo.maxDepth}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-0">Criterion:</td>
+                                <td class="py-0"><span class="badge ${configInfo.criterion === 'log_loss' ? 'bg-success' : 'bg-secondary'}" style="font-size: 0.55rem;">${configInfo.criterion}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-0">N-grams:</td>
+                                <td class="py-0">${configInfo.ngramRange}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- File Info -->
                     <div class="mb-2">
                         <small class="text-muted">Size: ${model.model_size_mb.toFixed(1)} MB</small><br>
-                        <small class="text-muted">Date: ${new Date(model.training_date).toLocaleDateString()}</small>
+                        <small class="text-muted">Date: ${dateStr}</small><br>
+                        <small class="text-muted">Time: ${timeStr}</small>
                     </div>
+
                     ${model.tags.length > 0 ? `
                     <div class="mb-2">
-                        ${model.tags.map(tag => `<span class="badge bg-secondary me-1">${tag}</span>`).join('')}
+                        ${model.tags.slice(0, 3).map(tag => `<span class="badge bg-secondary me-1" style="font-size: 0.65rem;">${tag}</span>`).join('')}
+                        ${model.tags.length > 3 ? `<span class="badge bg-light text-dark" style="font-size: 0.65rem;">+${model.tags.length - 3}</span>` : ''}
                     </div>
                     ` : ''}
+
                     <div class="btn-group w-100" role="group">
-                        <button class="btn btn-outline-primary btn-sm" onclick="showModelDetails('${model.model_id}')">
+                        <button class="btn btn-outline-primary btn-sm" onclick="showModelDetails('${model.model_id}')" title="View Details">
                             <i class="fas fa-info"></i>
                         </button>
                         ${model.file_exists ? `
-                        <button class="btn btn-outline-success btn-sm" onclick="loadModelForPredictions('${model.model_id}')">
+                        <button class="btn btn-outline-success btn-sm" onclick="loadModelForPredictions('${model.model_id}')" title="Load for Predictions">
                             <i class="fas fa-magic"></i>
                         </button>
                         ` : ''}
@@ -709,7 +853,7 @@ function displayModelList(models) {
         </div>
         `;
     });
-    
+
     html += '</div>';
     $('#models-list').html(html);
 }
@@ -874,6 +1018,80 @@ function loadPresetToCustom(presetName) {
     showAlert(`Loaded ${presetName} preset configuration`, 'info');
 }
 
+// Upload training file
+function uploadTrainingFile(file) {
+    // Validate file type
+    const allowedTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(csv|xlsx|xls)$/i)) {
+        showAlert('Please select a valid CSV or Excel file (.csv, .xlsx, .xls)', 'warning');
+        return;
+    }
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Show uploading status
+    const uploadingHtml = `
+        <div class="alert alert-info d-flex align-items-center" id="upload-progress">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            Uploading training file: ${file.name}...
+        </div>
+    `;
+    $('#training-files-info').prepend(uploadingHtml);
+
+    // Upload file
+    $.ajax({
+        url: '/upload_training',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            $('#upload-progress').remove();
+
+            if (response.success) {
+                const info = response.file_info;
+                let alertType = 'success';
+                let message = response.message;
+
+                if (info.missing_columns && info.missing_columns.length > 0) {
+                    alertType = 'warning';
+                }
+
+                showAlert(message, alertType);
+
+                // Refresh training files list
+                loadTrainingFiles();
+
+                // Show detailed file info
+                if (info.has_required_columns) {
+                    const detailHtml = `
+                        <div class="alert alert-success alert-dismissible fade show mt-2">
+                            <h6><i class="fas fa-check-circle"></i> File Upload Details</h6>
+                            <p><strong>File:</strong> ${info.filename}</p>
+                            <p><strong>Rows:</strong> ${info.row_count.toLocaleString()}</p>
+                            <p><strong>Columns:</strong> ${info.columns.length}</p>
+                            ${info.type_counts ? `<p><strong>Task Types:</strong> ${Object.keys(info.type_counts).length} unique types</p>` : ''}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                    $('#training-files-info').prepend(detailHtml);
+                }
+            } else {
+                showAlert('Upload failed: ' + response.message, 'danger');
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#upload-progress').remove();
+            showAlert('Upload failed: ' + error, 'danger');
+        }
+    });
+
+    // Reset file input
+    $('#training-file-input').val('');
+}
+
 // Show alert
 function showAlert(message, type) {
     const alertHtml = `
@@ -882,13 +1100,13 @@ function showAlert(message, type) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     `;
-    
+
     // Remove existing alerts
     $('.alert').remove();
-    
+
     // Add new alert at the top
     $('body').prepend(alertHtml);
-    
+
     // Auto-dismiss after 5 seconds
     setTimeout(function() {
         $('.alert').alert('close');

@@ -6,6 +6,7 @@ import json
 import locale
 import time
 import re
+import datetime
 from werkzeug.utils import secure_filename
 from advanced_classifier import AdvancedTaskTypeClassifier, TaskTypeClassifier
 from model_manager import ModelManager, ModelConfig, model_manager
@@ -198,7 +199,8 @@ def api_train_advanced():
         description = data.get('description', '')
         tags = data.get('tags', [])
         training_data_path = data.get('training_data_path', 'training-data')
-        
+        selected_files = data.get('selected_files', None)  # Get selected files list
+
         # Train the model
         start_time = time.time()
         model_id, performance_metrics = classifier_instance.train(
@@ -206,7 +208,8 @@ def api_train_advanced():
             model_name=model_name,
             description=description,
             tags=tags,
-            save_model=True
+            save_model=True,
+            selected_files=selected_files  # Pass selected files to training
         )
         
         return jsonify({
@@ -367,25 +370,25 @@ def upload_file():
     """Handle file upload for prediction"""
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file selected'})
-    
+
     file = request.files['file']
     if file.filename == '':
         return jsonify({'success': False, 'message': 'No file selected'})
-    
+
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         timestamp = str(int(time.time()))
         filename = f"{timestamp}_{filename}"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
-        
+
         # Load the file to get basic info
         try:
             if filename.lower().endswith('.csv'):
                 df = pd.read_csv(filepath, encoding='utf-8-sig')
             else:
                 df = pd.read_excel(filepath, engine='openpyxl')
-            
+
             file_info = {
                 'filename': file.filename,  # Original filename for display
                 'row_count': len(df),
@@ -397,12 +400,81 @@ def upload_file():
                 'row_count': 'Unknown',
                 'columns': []
             }
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'filename': filename,
             'file_info': file_info,
             'message': 'File uploaded successfully'
+        })
+    else:
+        return jsonify({'success': False, 'message': 'Invalid file type. Please upload CSV or XLSX files.'})
+
+@app.route('/upload_training', methods=['POST'])
+def upload_training_file():
+    """Handle file upload for training data"""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file selected'})
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'})
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        # Add timestamp to avoid overwrites
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        name, ext = os.path.splitext(filename)
+        filename = f"{name}_{timestamp}{ext}"
+
+        # Save to training-data folder
+        training_folder = 'training-data'
+        os.makedirs(training_folder, exist_ok=True)
+        filepath = os.path.join(training_folder, filename)
+        file.save(filepath)
+
+        # Load the file to get info and validate columns
+        try:
+            if filename.lower().endswith('.csv'):
+                df = pd.read_csv(filepath, encoding='utf-8-sig')
+            else:
+                df = pd.read_excel(filepath, engine='openpyxl')
+
+            # Check for required columns for training data
+            required_columns = ['Employees', 'Task Name', 'Category', 'Project', 'Billability Status', 'Type']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+
+            file_info = {
+                'filename': file.filename,  # Original filename for display
+                'saved_filename': filename,  # Saved filename with timestamp
+                'row_count': len(df),
+                'columns': list(df.columns),
+                'missing_columns': missing_columns,
+                'has_required_columns': len(missing_columns) == 0,
+                'type_counts': df['Type'].value_counts().to_dict() if 'Type' in df.columns else None
+            }
+
+            message = 'Training file uploaded successfully'
+            if missing_columns:
+                message += f'. Warning: Missing required columns: {", ".join(missing_columns)}'
+
+        except Exception as e:
+            file_info = {
+                'filename': file.filename,
+                'saved_filename': filename,
+                'row_count': 'Error loading file',
+                'columns': [],
+                'missing_columns': [],
+                'has_required_columns': False,
+                'error': str(e)
+            }
+            message = f'File uploaded but could not be processed: {str(e)}'
+
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'file_info': file_info,
+            'message': message
         })
     else:
         return jsonify({'success': False, 'message': 'Invalid file type. Please upload CSV or XLSX files.'})

@@ -40,13 +40,30 @@ class DataProcessor:
         self.tfidf = TfidfVectorizer(**self.tfidf_params)
         self.feature_names = []
         
-    def load_training_data(self, folder_path='training-data'):
-        """Load training data from CSV and Excel files in the specified folder"""
+    def load_training_data(self, folder_path='training-data', selected_files=None):
+        """Load training data from CSV and Excel files in the specified folder
+
+        Args:
+            folder_path: Path to the training data folder
+            selected_files: List of specific filenames to load (if None, loads all files)
+        """
         data_frames = []
-        
-        for filename in os.listdir(folder_path):
+
+        # Get all files if no selection specified
+        if selected_files is None:
+            files_to_load = [f for f in os.listdir(folder_path) if f.endswith(('.csv', '.xlsx'))]
+        else:
+            files_to_load = selected_files
+            print(f"Using selected files: {selected_files}")
+
+        for filename in files_to_load:
             file_path = os.path.join(folder_path, filename)
-            
+
+            # Skip if file doesn't exist (in case selected file was deleted)
+            if not os.path.exists(file_path):
+                print(f"Warning: Selected file not found: {filename}")
+                continue
+
             if filename.endswith('.csv'):
                 print(f"Loading CSV training file: {filename}")
                 df = pd.read_csv(file_path, encoding='utf-8-sig')

@@ -138,5 +138,160 @@
       "github-compatible",
       "production"
     ]
+  },
+  "ultra_high_accuracy_model_20250929_134930_642fc641": {
+    "model_id": "ultra_high_accuracy_model_20250929_134930_642fc641",
+    "name": "ultra_high_accuracy_model",
+    "config": {
+      "n_estimators": 1500,
+      "max_depth": null,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "max_features": "sqrt",
+      "criterion": "log_loss",
+      "bootstrap": true,
+      "max_samples": 0.85,
+      "oob_score": true,
+      "class_weight": "balanced",
+      "random_state": 42,
+      "max_features_tfidf": 6000,
+      "ngram_range": [
+        1,
+        4
+      ],
+      "min_df": 1,
+      "max_df": 0.82,
+      "cv_folds": 8,
+      "test_size": 0.2
+    },
+    "training_date": "2025-09-29T13:49:30.922047",
+    "training_duration": 768.5969417095184,
+    "dataset_info": {
+      "total_samples": 8392,
+      "training_samples": 6713,
+      "validation_samples": 1679,
+      "num_features": 6002,
+      "num_classes": 15,
+      "class_names": [
+        "AmaliTech Internal",
+        "Boart Longyear Consulting Project",
+        "Brock Accounting ID Maintenance Tool",
+        "Brock-Cybersecurity Project",
+        "Clean Sky Energy",
+        "Governance",
+        "Holiday",
+        "Leave",
+        "NSP 24-AWS DE Training Project",
+        "Planning & Roadmaps",
+        "Projects",
+        "Reporting",
+        "Support",
+        "Team admin",
+        "Training & Learning"
+      ],
+      "data_path": "training-data"
+    },
+    "performance_metrics": {
+      "training_accuracy": 1.0,
+      "validation_accuracy": 0.9118522930315665,
+      "cv_accuracy": 0.8091039084842708,
+      "cv_std": 0.06992026025824881,
+      "cv_scores": [
+        0.6663489037178265,
+        0.7378455672068637,
+        0.7883698760724499,
+        0.8226882745471878,
+        0.8455672068636797,
+        0.8856053384175405,
+        0.8646329837940896,
+        0.8617731172545281
+      ],
+      "oob_accuracy": 0.9010874422761805,
+      "training_duration": 768.5969417095184
+    },
+    "model_size_mb": 564.241096496582,
+    "file_path": "models\\model_ultra_high_accuracy_model_1759146570.pkl",
+    "description": "Ultra high accuracy model targeting 94%+ performance",
+    "tags": [
+      "ultra_high",
+      "production",
+      "high_accuracy"
+    ]
+  },
+  "ultra_high_fast_model_20250929_140315_8e21f5b9": {
+    "model_id": "ultra_high_fast_model_20250929_140315_8e21f5b9",
+    "name": "ultra_high_fast_model",
+    "config": {
+      "n_estimators": 2000,
+      "max_depth": null,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "max_features": "sqrt",
+      "criterion": "log_loss",
+      "bootstrap": true,
+      "max_samples": 0.9,
+      "oob_score": true,
+      "class_weight": "balanced",
+      "random_state": 42,
+      "max_features_tfidf": 7000,
+      "ngram_range": [
+        1,
+        5
+      ],
+      "min_df": 1,
+      "max_df": 0.8,
+      "cv_folds": 5,
+      "test_size": 0.2
+    },
+    "training_date": "2025-09-29T14:03:15.695910",
+    "training_duration": 801.8172767162323,
+    "dataset_info": {
+      "total_samples": 8392,
+      "training_samples": 6713,
+      "validation_samples": 1679,
+      "num_features": 7002,
+      "num_classes": 15,
+      "class_names": [
+        "AmaliTech Internal",
+        "Boart Longyear Consulting Project",
+        "Brock Accounting ID Maintenance Tool",
+        "Brock-Cybersecurity Project",
+        "Clean Sky Energy",
+        "Governance",
+        "Holiday",
+        "Leave",
+        "NSP 24-AWS DE Training Project",
+        "Planning & Roadmaps",
+        "Projects",
+        "Reporting",
+        "Support",
+        "Team admin",
+        "Training & Learning"
+      ],
+      "data_path": "training-data"
+    },
+    "performance_metrics": {
+      "training_accuracy": 1.0,
+      "validation_accuracy": 0.9047051816557474,
+      "cv_accuracy": 0.7893408088843394,
+      "cv_std": 0.0700086395185037,
+      "cv_scores": [
+        0.672424061941632,
+        0.7581893984514592,
+        0.8033373063170441,
+        0.8748510131108462,
+        0.8379022646007152
+      ],
+      "oob_accuracy": 0.9009384775808134,
+      "training_duration": 801.8172767162323
+    },
+    "model_size_mb": 769.0997219085693,
+    "file_path": "models\\model_ultra_high_fast_model_1759147394.pkl",
+    "description": "Ultra high fast model targeting 94%+ performance with maximum features",
+    "tags": [
+      "ultra_high_fast",
+      "production",
+      "maximum_accuracy"
+    ]
   }
 }

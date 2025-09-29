@@ -2,16 +2,18 @@
 
 A comprehensive machine learning application for classifying and analyzing task types from time tracking data. Built with Flask and scikit-learn, featuring an intuitive web interface for training, prediction, and advanced data visualization.
 
-**Latest Update (v2.0.1)**: Enhanced stability with critical bug fixes for model loading compatibility and visualization components.
+**Latest Update (v2.0.2)**: Advanced model management system with enhanced retraining capabilities and improved model registry UI.
 
 ## 🌟 Key Features
 
 ### 🤖 Advanced Machine Learning
-- **Random Forest Classifier** with optimized parameters for task classification
-- **TF-IDF Vectorization** for text feature extraction from task descriptions  
-- **Balanced class handling** for imbalanced datasets
-- **Cross-validation** with detailed performance metrics
-- **Model persistence** with automatic save/load functionality
+- **Advanced Model Management System** - Full model registry with versioning, configuration tracking, and performance history
+- **Configurable Training Presets** - Multiple pre-configured model settings (baseline, optimized, enhanced, ultra_high, ultra_high_fast)
+- **High-Accuracy Models** - Optimized configurations achieving 90%+ validation accuracy with detailed configuration control
+- **Random Forest Classifier** with sophisticated parameter tuning (up to 2000 trees, unlimited depth, advanced criterion options)
+- **Enhanced TF-IDF Processing** - Up to 7000 features with n-gram support (1-5), optimized for maximum text discrimination
+- **Cross-validation** with comprehensive performance metrics and out-of-bag scoring
+- **Model persistence** with automatic save/load and metadata tracking
 
 ### 📊 Comprehensive Visualizations (New!)
 - **Feature Importance Grid** - Interactive heatmap showing word importance across task types with hover tooltips
@@ -27,11 +29,18 @@ A comprehensive machine learning application for classifying and analyzing task 
 - **Click-to-Edit** - Click any row to modify predictions
 - **Export Functionality** - Download results with predictions and confidence scores
 
-### 📁 Smart Training Data Management
-- **Multiple File Support** - CSV and Excel file compatibility with automatic format detection
-- **File Upload Interface** - Modern upload interface with validation and progress indication
-- **Training Status** - Real-time training progress with accuracy metrics and cross-validation scores
-- **Data Validation** - Automatic column validation and comprehensive error handling
+### 📁 Advanced Model Management & Training
+- **Enhanced Model Registry** - Visual model cards with detailed configuration comparison, timestamps, and performance metrics
+- **Multiple Training Configurations** - Choose from preset configurations or create custom model parameters
+- **Real-time Training Progress** - Live updates during model training with comprehensive performance reporting
+- **Model Versioning** - Track multiple model versions with metadata, configuration details, and training history
+- **Configuration Presets** - Pre-configured settings for different use cases:
+  - **baseline**: Standard 500-tree model (~60MB)
+  - **optimized**: Balanced 750-tree model (~70MB)
+  - **enhanced**: High-performance log_loss model (~105MB)
+  - **ultra_high**: Premium 1500-tree model achieving 91%+ accuracy (~560MB)
+  - **ultra_high_fast**: Maximum 2000-tree model with 7000 features (~770MB)
+- **Smart File Management** - Automatic training data detection, validation, and processing
 
 ## 🚀 Quick Start
 
@@ -78,34 +87,39 @@ Navigate to `http://localhost:5000` in your web browser.
 
 ## 📋 Comprehensive Usage Guide
 
-### 1. Training the Model
+### 1. Advanced Model Training & Management
 
-#### Prepare Training Data
-Ensure your CSV/Excel files have these required columns:
-- `Employees` - Employee names/IDs
-- `Task Name` - Task descriptions (primary text for analysis)
-- `Category` - Task categories
-- `Project` - Project names
-- `Billability Status` - Billing status
-- `Type` - Target classification (what you want to predict)
+#### Enhanced Training Interface
+Navigate to the **Enhanced Training Interface** at `http://localhost:5000` for full model management capabilities.
 
-#### Training Process
-1. **Upload Training Files**: 
-   - Click "Upload New Training File" 
-   - Select your CSV/Excel file
-   - Files are automatically validated for required columns
-   - Files are saved to `training-data/` folder with timestamps
+**Training Tab Features:**
+- **Training Data Overview**: Automatic detection and analysis of files in `training-data/` folder
+- **Advanced Configuration Options**: Choose from preset configurations or create custom models
+- **Real-time Progress Monitoring**: Live training updates with comprehensive metrics
 
-2. **Train the Model**:
-   - Click "Train with Current Files" 
-   - View real-time training progress
-   - See training accuracy, validation accuracy, and cross-validation scores
-   - Model automatically saved as `model.pkl`
+#### Training Configuration Options
 
-3. **View Training Results**:
-   - Detailed classification report with precision/recall/F1-score
-   - Class distribution analysis
-   - Training file information and row counts
+**Option 1 - Configuration Presets (Recommended):**
+- **baseline**: Standard model (500 trees, 3000 features, 10 CV folds) - ~60MB
+- **optimized**: Balanced performance (750 trees, 3000 features) - ~70MB
+- **enhanced**: High-performance (750 trees, log_loss criterion, 15 CV folds) - ~105MB
+- **ultra_high**: Premium accuracy (1500 trees, 6000 features, no depth limit) - ~560MB, **91%+ accuracy**
+- **ultra_high_fast**: Maximum performance (2000 trees, 7000 features, 5-gram n-grams) - ~770MB
+
+**Option 2 - Custom Configuration:**
+- Fine-tune Random Forest parameters (trees, depth, criterion)
+- Adjust TF-IDF settings (features, n-grams, document frequency)
+- Configure cross-validation and training parameters
+
+**Option 3 - Model-Based Training:**
+- Use existing model configuration as starting point
+- Modify specific parameters while keeping proven settings
+
+#### Model Registry
+- **Visual Model Cards**: Compare models with detailed configuration, performance metrics, and timestamps
+- **Configuration Comparison**: See differences in trees, features, CV folds, depth, criterion, and n-grams
+- **Performance Tracking**: Training, validation, and cross-validation accuracy scores
+- **Model Loading**: Switch between different trained models for predictions
 
 ### 2. Making Predictions
 
@@ -230,18 +244,23 @@ Same as training data but **without** the `Type` column (this gets predicted).
 
 ```
 clockit-mapping-claude/
-├── app.py                    # Main Flask application with API endpoints
-├── classifier.py             # Random Forest model implementation
-├── data_processor.py         # Data preprocessing and feature engineering
+├── app.py                    # Main Flask application with advanced model management APIs
+├── classifier.py             # Legacy Random Forest model implementation
+├── advanced_classifier.py   # Advanced classifier with model registry integration
+├── model_manager.py         # Comprehensive model versioning and configuration management
+├── data_processor.py        # Enhanced data preprocessing and feature engineering
 ├── templates/
 │   ├── base.html            # Base template with navigation
-│   ├── index.html           # Training interface with file upload
+│   ├── index.html           # Legacy training interface
+│   ├── enhanced_index.html  # **Advanced training & model management interface**
 │   ├── predict.html         # Prediction interface with advanced table
 │   └── visualize.html       # Comprehensive visualization dashboard
+├── models/                  # Versioned model storage directory
 ├── training-data/           # Training data files (CSV/Excel)
 ├── uploads/                 # Uploaded prediction files
 ├── .venv/                   # Virtual environment (created by uv)
-├── model.pkl               # Trained model (created after training)
+├── model.pkl               # Legacy model file (maintained for compatibility)
+├── model_registry.json     # Model metadata and version registry
 ├── requirements.txt        # Python dependencies
 ├── run.bat                 # Windows batch file for easy startup
 └── README.md              # This comprehensive documentation
@@ -249,10 +268,18 @@ clockit-mapping-claude/
 
 ## 🎯 API Endpoints
 
-The application provides several API endpoints for data access:
+The application provides comprehensive API endpoints for advanced model management and data access:
 
+### Model Management APIs
+- `GET /api/models` - List all registered models with configuration and performance details
+- `GET /api/models/<model_id>` - Get detailed information about a specific model
+- `POST /api/train_advanced` - Train models with advanced configuration options (presets, custom, or model-based)
+- `POST /api/load_model` - Load a specific model for predictions
+- `DELETE /api/delete_model/<model_id>` - Remove a model from the registry
+- `GET /api/config_presets` - Get available configuration presets
+
+### Data Processing APIs
 - `GET /api/training_files` - List current training files with metadata
-- `POST /train` - Train the model with current training data
 - `POST /upload_training` - Upload new training files
 - `GET /api/feature_importance` - Get feature importance data for visualizations
 - `GET /api/feature_grid` - Get feature importance grid (words vs classes)
@@ -261,15 +288,32 @@ The application provides several API endpoints for data access:
 - `GET /api/classes` - Get all available task type classes
 - `GET /api/model_info` - Get detailed model information and parameters
 
+### Prediction APIs
+- `POST /predict_file` - Make predictions on uploaded files
+- `POST /upload_prediction` - Upload files for prediction
+
 ## 🚀 Performance Benchmarks
 
-### Model Performance (Current Training Data)
-- **Training Accuracy**: ~81.2%
-- **Validation Accuracy**: ~78.7% 
-- **Cross-Validation**: ~74.5% (±16.1%)
-- **Classes**: 14 different task types
-- **Training Samples**: ~7,260 records
-- **Features**: 1,500 TF-IDF features + duration features
+### Model Performance (Latest Ultra-High Accuracy Models)
+
+**Current Best Model (ultra_high_accuracy_model):**
+- **Training Accuracy**: 100% (perfect fit)
+- **Validation Accuracy**: **91.19%** (significant improvement)
+- **Out-of-Bag Accuracy**: 90.11%
+- **Cross-Validation**: 80.91% (±13.98%)
+- **Configuration**: 1500 trees, 6000 features, log_loss criterion, unlimited depth
+- **Model Size**: 564 MB
+- **Training Time**: ~13 minutes
+
+**Alternative High-Performance Model (ultra_high_fast_model):**
+- **Training Accuracy**: 100%
+- **Validation Accuracy**: 90.47%
+- **Configuration**: 2000 trees, 7000 features, 5-gram n-grams
+- **Model Size**: 769 MB
+
+**Legacy Performance (for comparison):**
+- **Enhanced Model**: ~87.4% validation accuracy (750 trees, 3000 features)
+- **Baseline Model**: ~86.3% validation accuracy (500 trees, 3000 features)
 
 ### Application Performance
 - **Startup Time**: < 3 seconds
@@ -346,9 +390,29 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🎯 Roadmap & Future Enhancements
 
+## 🆕 Latest Improvements (v2.0.2)
+
+### Advanced Model Management System
+- ✅ **Model Registry with Visual Cards**: Enhanced model comparison interface showing configuration details, timestamps, and performance metrics
+- ✅ **High-Accuracy Model Configurations**: New ultra_high and ultra_high_fast presets achieving 90%+ validation accuracy
+- ✅ **Comprehensive Configuration Display**: Model cards now show trees, features, CV folds, max depth, criterion, and n-grams for easy comparison
+- ✅ **Real-time Model Training**: Advanced training interface with progress monitoring and detailed results
+- ✅ **Model Versioning & Metadata**: Full model lifecycle management with detailed tracking
+
+### Enhanced User Interface
+- ✅ **Improved Model Registry Cards**: Visual design with configuration tables, performance metrics, and timestamps
+- ✅ **Configuration Comparison**: Easy side-by-side comparison of different model configurations
+- ✅ **Color-coded Indicators**: Visual cues for model performance and configuration differences
+- ✅ **Enhanced Navigation**: Streamlined interface for model management and training
+
+### Significant Performance Improvements
+- ✅ **91.19% Validation Accuracy**: Best-in-class performance with ultra_high configuration
+- ✅ **Advanced TF-IDF Processing**: Up to 7000 features with 5-gram n-gram support
+- ✅ **Optimized Training Pipeline**: Efficient model training with comprehensive validation metrics
+
 ### Planned Features
 - [ ] **Export Training Insights**: Download comprehensive training analysis reports
-- [ ] **Model Comparison**: Compare different model configurations and performance
+- [ ] **Automated Model Selection**: AI-driven recommendation of optimal configurations
 - [ ] **Batch Processing API**: REST API for automated batch predictions
 - [ ] **Advanced Filtering**: Custom filter builders for complex data queries
 - [ ] **Custom Stop Words**: User-defined stop word lists for word frequency analysis

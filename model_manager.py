@@ -162,6 +162,17 @@ class ModelManager:
         """Get list of all registered models with summary info"""
         models = []
         for model_id, metadata in self.models_metadata.items():
+            # Extract configuration details
+            config = metadata.config
+            config_summary = {
+                'n_estimators': config.n_estimators,
+                'max_features_tfidf': config.max_features_tfidf,
+                'cv_folds': config.cv_folds,
+                'max_depth': config.max_depth if config.max_depth is not None else 'None',
+                'criterion': config.criterion,
+                'ngram_range': f"{config.ngram_range[0]}-{config.ngram_range[1]}"
+            }
+
             models.append({
                 'model_id': model_id,
                 'name': metadata.name,
@@ -171,12 +182,13 @@ class ModelManager:
                     'validation_acc': metadata.performance_metrics.get('validation_accuracy', 0),
                     'cv_acc': metadata.performance_metrics.get('cv_accuracy', 0)
                 },
+                'config': config_summary,
                 'model_size_mb': metadata.model_size_mb,
                 'description': metadata.description,
                 'tags': metadata.tags,
                 'file_exists': os.path.exists(metadata.file_path)
             })
-        
+
         # Sort by training date (newest first)
         models.sort(key=lambda x: x['training_date'], reverse=True)
         return models
@@ -263,15 +275,30 @@ class ModelManager:
                 cv_folds=5
             ),
             'ultra_high': ModelConfig(
-                n_estimators=1000,
-                max_depth=30,
+                n_estimators=1500,          # Increase trees for better performance
+                max_depth=None,             # No depth limit for maximum capacity
+                min_samples_split=2,        # Fine-grained splits
+                min_samples_leaf=1,         # Fine-grained leaf nodes
+                criterion='log_loss',       # Better probability estimates
+                max_samples=0.85,           # 85% bootstrap sampling for diversity
+                max_features_tfidf=6000,    # More TF-IDF features for better text representation
+                ngram_range=(1, 4),         # Up to 4-grams for context
+                cv_folds=8,                 # Reduce CV folds for faster training
+                max_df=0.82,                # Slightly more restrictive on common words
+                min_df=1                    # Keep rare words
+            ),
+            'ultra_high_fast': ModelConfig(
+                n_estimators=2000,          # Even more trees for maximum accuracy
+                max_depth=None,             # Unlimited depth
                 min_samples_split=2,
                 min_samples_leaf=1,
                 criterion='log_loss',
-                max_samples=0.8,
-                max_features_tfidf=5000,
-                ngram_range=(1, 4),
-                cv_folds=15
+                max_samples=0.9,            # 90% sampling for better coverage
+                max_features_tfidf=7000,    # Maximum features for text analysis
+                ngram_range=(1, 5),         # Include 5-grams for maximum context
+                cv_folds=5,                 # Faster CV for quicker training
+                max_df=0.8,                 # Remove very common words
+                min_df=1                    # Keep all rare words
             )
         }
     
