@@ -13,7 +13,16 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(git reset:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(tasklist)",
+      "Bash(tasklist:*)",
+      "Bash(move app.py app_old_basic.py)",
+      "Bash(del test_fixes.py)",
+      "Bash(git rm:*)",
+      "Bash(rm:*)",
+      "Bash(move enhanced_model_97pct.pkl models/)"
     ],
     "deny": [],
     "ask": []

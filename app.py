@@ -10,6 +10,7 @@ import datetime
 from werkzeug.utils import secure_filename
 from advanced_classifier import AdvancedTaskTypeClassifier, TaskTypeClassifier
 from model_manager import ModelManager, ModelConfig, model_manager
+from api_docs import initialize_api_documentation
 import tempfile
 from io import StringIO, BytesIO
 
@@ -35,6 +36,9 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 # Global classifier instance (for backward compatibility)
 classifier = TaskTypeClassifier()
+
+# Initialize API documentation (always initialize, routes will check debug mode)
+initialize_api_documentation(app)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -629,6 +633,30 @@ def visualize():
     """Visualization page"""
     return render_template('visualize.html')
 
+@app.route('/redoc')
+def redoc():
+    """ReDoc API documentation (development only)"""
+    if not app.debug:
+        return jsonify({'error': 'API documentation disabled in production mode'}), 404
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>ClockIt Task Classifier API Documentation</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+        <style>
+            body { margin: 0; padding: 0; }
+        </style>
+    </head>
+    <body>
+        <redoc spec-url="/api/docs/openapi.json"></redoc>
+        <script src="https://cdn.jsdelivr.net/npm/redoc@2.1.5/bundles/redoc.standalone.js"></script>
+    </body>
+    </html>
+    '''
+
 @app.route('/api/feature_importance')
 def api_feature_importance():
     """Get feature importance for visualization"""
@@ -1085,7 +1113,7 @@ def api_model_info():
 # Initialize the application
 def initialize_app():
     """Initialize the application"""
-    print("Enhanced Task Type Classifier")
+    print("ClockIt Task Classifier")
     print("Initializing model manager...")
     
     # Try to load an existing model
