@@ -344,6 +344,50 @@
 let currentFile = null;
 let serverFilename = null;
 let currentPredictions = null;
+
+// Restore state from sessionStorage on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const savedFilename = sessionStorage.getItem('serverFilename');
+    const savedFileInfo = sessionStorage.getItem('fileInfo');
+
+    if (savedFilename && savedFileInfo) {
+        // Check if the file still exists on the server
+        fetch('/predict_file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: savedFilename, check_only: true })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success !== false || !data.message.includes('File not found')) {
+                // File exists, restore UI state
+                serverFilename = savedFilename;
+                const fileInfo = JSON.parse(savedFileInfo);
+
+                showFileInfo(fileInfo);
+                document.getElementById('predictionsSection').classList.remove('d-none');
+                document.getElementById('predictBtn').disabled = false;
+
+                // Show restored state message
+                const resultDiv = document.getElementById('uploadResult');
+                resultDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Previous file session restored: ${fileInfo.filename}
+                    </div>
+                `;
+            } else {
+                // File no longer exists, clear session storage
+                sessionStorage.removeItem('serverFilename');
+                sessionStorage.removeItem('fileInfo');
+            }
+        })
+        .catch(error => {
+            // Clear session storage on error
+            sessionStorage.removeItem('serverFilename');
+            sessionStorage.removeItem('fileInfo');
+        });
+    }
+});
 let editingRowIndex = null;
 let originalPredictions = null;
 let availableClasses = [];
@@ -402,7 +446,11 @@ document.getElementById('uploadBtn').addEventListener('click', function() {
             
             // Store the server filename
             serverFilename = data.filename;
-            
+
+            // Store in sessionStorage for persistence across page reloads
+            sessionStorage.setItem('serverFilename', data.filename);
+            sessionStorage.setItem('fileInfo', JSON.stringify(data.file_info));
+
             // Show file info and enable prediction
             showFileInfo(data.file_info);
             document.getElementById('predictionsSection').classList.remove('d-none');
