@@ -444,20 +444,24 @@ function loadWordFrequencyTable() {
                 wordFrequencies = data;
                 renderWordFrequencyTable();
             } else {
-                document.getElementById('wordFrequencyContainer').innerHTML = 
-                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
+                document.getElementById('wordFrequencyContainer').innerHTML =
+                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.message || data.error || 'Unknown error'}</div>`;
             }
         })
         .catch(error => {
-            document.getElementById('wordFrequencyContainer').innerHTML = 
+            document.getElementById('wordFrequencyContainer').innerHTML =
                 `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
         });
 }
 
 function renderWordFrequencyTable() {
-    if (!wordFrequencies || !wordFrequencies.word_frequencies || wordFrequencies.word_frequencies.length === 0) return;
-    
     const container = document.getElementById('wordFrequencyContainer');
+
+    if (!wordFrequencies || !wordFrequencies.word_frequencies || wordFrequencies.word_frequencies.length === 0) {
+        container.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No word frequency data available</div>';
+        return;
+    }
+
     const words = wordFrequencies.word_frequencies;
     
     let html = `
@@ -485,8 +489,8 @@ function renderWordFrequencyTable() {
                 <div class="col-md-4">
                     <div class="text-end">
                         <small class="text-muted">
-                            <strong>Total Words:</strong> <span id="totalWordsCount">${wordFrequencies.total_words.toLocaleString()}</span> | 
-                            <strong>Included:</strong> <span id="includedWordsCount">0</span> | 
+                            <strong>Total Words:</strong> <span id="totalWordsCount">${(wordFrequencies.total_words || 0).toLocaleString()}</span> |
+                            <strong>Included:</strong> <span id="includedWordsCount">0</span> |
                             <strong>Excluded:</strong> <span id="excludedWordsCount">0</span>
                         </small>
                     </div>
@@ -642,20 +646,24 @@ function loadCategoricalAnalysis() {
                 categoricalData = data.categorical_data;
                 renderCategoricalAnalysis();
             } else {
-                document.getElementById('categoricalContainer').innerHTML = 
-                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
+                document.getElementById('categoricalContainer').innerHTML =
+                    `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.message || data.error || 'Unknown error'}</div>`;
             }
         })
         .catch(error => {
-            document.getElementById('categoricalContainer').innerHTML = 
+            document.getElementById('categoricalContainer').innerHTML =
                 `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
         });
 }
 
 function renderCategoricalAnalysis() {
-    if (!categoricalData) return;
-    
     const container = document.getElementById('categoricalContainer');
+
+    if (!categoricalData) {
+        container.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No categorical data available</div>';
+        return;
+    }
+
     let html = '<div class="row">';
     
     // Duration Statistics (if available)
@@ -716,7 +724,7 @@ function renderCategoricalAnalysis() {
                 </div>
                 <div class="card-body">
                     <div class="text-center p-3 bg-light rounded">
-                        <div class="display-6 fw-bold text-primary">${categoricalData.total_records.toLocaleString()}</div>
+                        <div class="display-6 fw-bold text-primary">${(categoricalData.total_records || 0).toLocaleString()}</div>
                         <div class="text-muted">Total Records</div>
                     </div>
                     ${categoricalData.date_range && categoricalData.date_range.start_date ? `
@@ -748,12 +756,12 @@ function renderCategoricalAnalysis() {
         `;
         
         categoricalData.categories.forEach((cat, idx) => {
-            const percentage = ((cat.count / categoricalData.total_records) * 100).toFixed(1);
+            const percentage = categoricalData.total_records ? ((cat.count / categoricalData.total_records) * 100).toFixed(1) : '0.0';
             html += `
                 <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span class="fw-bold">${cat.name}</span>
+                    <span class="fw-bold">${cat.name || 'Unknown'}</span>
                     <div class="text-end">
-                        <span class="badge bg-primary">${cat.count.toLocaleString()}</span>
+                        <span class="badge bg-primary">${(cat.count || 0).toLocaleString()}</span>
                         <small class="text-muted ms-1">${percentage}%</small>
                     </div>
                 </div>
@@ -781,13 +789,13 @@ function renderCategoricalAnalysis() {
         `;
         
         categoricalData.task_types.forEach((type, idx) => {
-            const percentage = ((type.count / categoricalData.total_records) * 100).toFixed(1);
+            const percentage = categoricalData.total_records ? ((type.count / categoricalData.total_records) * 100).toFixed(1) : '0.0';
             const hue = (idx * 360 / categoricalData.task_types.length);
             html += `
                 <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span class="fw-bold">${type.name}</span>
+                    <span class="fw-bold">${type.name || 'Unknown'}</span>
                     <div class="text-end">
-                        <span class="badge" style="background: hsl(${hue}, 70%, 50%)">${type.count.toLocaleString()}</span>
+                        <span class="badge" style="background: hsl(${hue}, 70%, 50%)">${(type.count || 0).toLocaleString()}</span>
                         <small class="text-muted ms-1">${percentage}%</small>
                     </div>
                 </div>
@@ -817,12 +825,12 @@ function renderCategoricalAnalysis() {
         `;
         
         categoricalData.projects.forEach((proj, idx) => {
-            const percentage = ((proj.count / categoricalData.total_records) * 100).toFixed(1);
+            const percentage = categoricalData.total_records ? ((proj.count / categoricalData.total_records) * 100).toFixed(1) : '0.0';
             html += `
                 <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span class="fw-bold">${proj.name}</span>
+                    <span class="fw-bold">${proj.name || 'Unknown'}</span>
                     <div class="text-end">
-                        <span class="badge bg-info">${proj.count.toLocaleString()}</span>
+                        <span class="badge bg-info">${(proj.count || 0).toLocaleString()}</span>
                         <small class="text-muted ms-1">${percentage}%</small>
                     </div>
                 </div>
@@ -850,12 +858,12 @@ function renderCategoricalAnalysis() {
         `;
         
         categoricalData.employees.forEach((emp, idx) => {
-            const percentage = ((emp.count / categoricalData.total_records) * 100).toFixed(1);
+            const percentage = categoricalData.total_records ? ((emp.count / categoricalData.total_records) * 100).toFixed(1) : '0.0';
             html += `
                 <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span class="fw-bold">${emp.name}</span>
+                    <span class="fw-bold">${emp.name || 'Unknown'}</span>
                     <div class="text-end">
-                        <span class="badge bg-success">${emp.count.toLocaleString()}</span>
+                        <span class="badge bg-success">${(emp.count || 0).toLocaleString()}</span>
                         <small class="text-muted ms-1">${percentage}%</small>
                     </div>
                 </div>
