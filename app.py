@@ -181,6 +181,9 @@ def api_train_advanced():
             classifier_instance = AdvancedTaskTypeClassifier.from_config_preset(preset_name)
         elif config_source == 'custom':
             config_dict = data.get('config', {})
+            # Convert ngram_range from list to tuple if needed
+            if 'ngram_range' in config_dict and isinstance(config_dict['ngram_range'], list):
+                config_dict['ngram_range'] = tuple(config_dict['ngram_range'])
             config = ModelConfig(**config_dict)
             classifier_instance = AdvancedTaskTypeClassifier(config=config)
         elif config_source == 'model':
