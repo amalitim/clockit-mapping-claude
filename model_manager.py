@@ -40,6 +40,9 @@ class ModelConfig:
     @classmethod
     def from_dict(cls, data: Dict) -> 'ModelConfig':
         """Create from dictionary"""
+        # Convert ngram_range from list to tuple if needed (for JSON deserialization)
+        if 'ngram_range' in data and isinstance(data['ngram_range'], list):
+            data['ngram_range'] = tuple(data['ngram_range'])
         return cls(**data)
     
     def get_hash(self) -> str:

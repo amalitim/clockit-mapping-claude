@@ -30,6 +30,9 @@ class DataProcessor:
         if max_features is not None:
             self.tfidf_params['max_features'] = max_features
         if ngram_range is not None:
+            # Ensure ngram_range is a tuple
+            if isinstance(ngram_range, list):
+                ngram_range = tuple(ngram_range)
             self.tfidf_params['ngram_range'] = ngram_range
         if min_df is not None:
             self.tfidf_params['min_df'] = min_df
