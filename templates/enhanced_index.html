@@ -411,6 +411,9 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-info" id="rename-model-btn">
+                    <i class="fas fa-edit"></i> Rename
+                </button>
                 <button type="button" class="btn btn-primary" id="load-model-btn">
                     <i class="fas fa-download"></i> Load for Predictions
                 </button>
@@ -862,7 +865,14 @@ function displayModelList(models) {
                     <div class="mb-2">
                         <small class="text-muted">Size: ${model.model_size_mb.toFixed(1)} MB</small><br>
                         <small class="text-muted">Date: ${dateStr}</small><br>
-                        <small class="text-muted">Time: ${timeStr}</small>
+                        <small class="text-muted">Time: ${timeStr}</small><br>
+                        ${model.performance && model.performance.training_duration ? `<small class="text-muted">Training: ${
+                            model.performance.training_duration < 60
+                                ? model.performance.training_duration.toFixed(1) + 's'
+                                : model.performance.training_duration < 3600
+                                    ? Math.floor(model.performance.training_duration / 60) + 'm ' + (model.performance.training_duration % 60).toFixed(0) + 's'
+                                    : Math.floor(model.performance.training_duration / 3600) + 'h ' + Math.floor((model.performance.training_duration % 3600) / 60) + 'm'
+                        }</small><br>` : ''}
                     </div>
 
                     ${model.tags.length > 0 ? `
@@ -957,7 +967,14 @@ function displayModelList(models) {
                         <div class="mb-2">
                             <small class="text-muted">Size: ${model.model_size_mb.toFixed(1)} MB</small><br>
                             <small class="text-muted">Date: ${dateStr}</small><br>
-                            <small class="text-muted">Time: ${timeStr}</small>
+                            <small class="text-muted">Time: ${timeStr}</small><br>
+                            ${model.performance && model.performance.training_duration ? `<small class="text-muted">Training: ${
+                                model.performance.training_duration < 60
+                                    ? model.performance.training_duration.toFixed(1) + 's'
+                                    : model.performance.training_duration < 3600
+                                        ? Math.floor(model.performance.training_duration / 60) + 'm ' + (model.performance.training_duration % 60).toFixed(0) + 's'
+                                        : Math.floor(model.performance.training_duration / 3600) + 'h ' + Math.floor((model.performance.training_duration % 3600) / 60) + 'm'
+                            }</small><br>` : ''}
                         </div>
                         ${model.tags.length > 0 ? `
                         <div class="mb-2">
@@ -1004,7 +1021,24 @@ function showModelDetails(modelId) {
 function displayModelDetails(model) {
     const perf = model.performance_metrics;
     const config = model.config;
-    
+
+    // Format training duration
+    let trainingDuration = 'N/A';
+    if (perf.training_duration) {
+        const duration = perf.training_duration;
+        if (duration < 60) {
+            trainingDuration = `${duration.toFixed(1)}s`;
+        } else if (duration < 3600) {
+            const minutes = Math.floor(duration / 60);
+            const seconds = (duration % 60).toFixed(0);
+            trainingDuration = `${minutes}m ${seconds}s`;
+        } else {
+            const hours = Math.floor(duration / 3600);
+            const minutes = Math.floor((duration % 3600) / 60);
+            trainingDuration = `${hours}h ${minutes}m`;
+        }
+    }
+
     let html = `
     <div class="row">
         <div class="col-md-6">
@@ -1014,7 +1048,7 @@ function displayModelDetails(model) {
                 <tr><td>Validation Accuracy</td><td>${(perf.validation_accuracy * 100).toFixed(1)}%</td></tr>
                 <tr><td>Cross-Validation</td><td>${(perf.cv_accuracy * 100).toFixed(1)}% ± ${(perf.cv_std * 2 * 100).toFixed(1)}%</td></tr>
                 ${perf.oob_accuracy ? `<tr><td>Out-of-Bag</td><td>${(perf.oob_accuracy * 100).toFixed(1)}%</td></tr>` : ''}
-                <tr><td>Training Duration</td><td>${perf.training_duration.toFixed(1)}s</td></tr>
+                <tr><td>Training Duration</td><td>${trainingDuration}</td></tr>
             </table>
         </div>
         <div class="col-md-6">
@@ -1090,10 +1124,42 @@ function loadModelForPredictions(modelId) {
     });
 }
 
+// Rename model
+$('#rename-model-btn').click(function() {
+    if (!currentModelId) return;
+
+    const metadata = model_manager.get_model_metadata(currentModelId);
+    const currentName = $('#modal-model-details').find('code').first().text().includes(currentModelId)
+        ? prompt('Enter new model name:')
+        : prompt('Enter new model name:', '');
+
+    const newName = prompt('Enter new model name:');
+    if (newName && newName.trim()) {
+        $.ajax({
+            url: `/api/rename_model/${currentModelId}`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({new_name: newName.trim()}),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('Model renamed successfully!', 'success');
+                    $('#modelDetailsModal').modal('hide');
+                    refreshModelList();
+                } else {
+                    showAlert('Error renaming model: ' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('Error renaming model', 'danger');
+            }
+        });
+    }
+});
+
 // Delete model
 $('#delete-model-btn').click(function() {
     if (!currentModelId) return;
-    
+
     if (confirm('Are you sure you want to delete this model? This action cannot be undone.')) {
         $.ajax({
             url: `/api/delete_model/${currentModelId}`,

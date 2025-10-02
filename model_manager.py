@@ -224,24 +224,63 @@ class ModelManager:
         with open(metadata.file_path, 'rb') as f:
             return pickle.load(f)
     
+    def rename_model(self, model_id: str, new_name: str) -> bool:
+        """Rename a model and optionally its file on disk"""
+        if model_id not in self.models_metadata:
+            return False
+
+        metadata = self.models_metadata[model_id]
+        old_file_path = metadata.file_path
+
+        # Update metadata name
+        metadata.name = new_name
+
+        # Generate new file name based on the new model name
+        # Keep the timestamp and hash from the original filename
+        file_dir = os.path.dirname(old_file_path)
+        old_basename = os.path.basename(old_file_path)
+
+        # Extract timestamp from old filename (e.g., model_enhanced_model_1759420029.pkl -> 1759420029)
+        parts = old_basename.replace('.pkl', '').split('_')
+        if parts and parts[-1].isdigit():
+            timestamp = parts[-1]
+            new_basename = f"model_{new_name}_{timestamp}.pkl"
+            new_file_path = os.path.join(file_dir, new_basename)
+
+            # Rename physical file if it exists
+            if os.path.exists(old_file_path):
+                try:
+                    os.rename(old_file_path, new_file_path)
+                    metadata.file_path = new_file_path
+                    print(f"Renamed model file: {old_file_path} -> {new_file_path}")
+                except Exception as e:
+                    print(f"Warning: Could not rename model file: {e}")
+                    # Keep old file path if rename failed
+            else:
+                # File doesn't exist, just update the path in metadata
+                metadata.file_path = new_file_path
+
+        self._save_metadata()
+        return True
+
     def delete_model(self, model_id: str) -> bool:
         """Delete a model and its metadata"""
         if model_id not in self.models_metadata:
             return False
-        
+
         metadata = self.models_metadata[model_id]
-        
+
         # Delete model file if exists
         if os.path.exists(metadata.file_path):
             try:
                 os.remove(metadata.file_path)
             except Exception as e:
                 print(f"Warning: Could not delete model file: {e}")
-        
+
         # Remove from metadata
         del self.models_metadata[model_id]
         self._save_metadata()
-        
+
         return True
     
     def get_config_presets(self) -> Dict[str, ModelConfig]:

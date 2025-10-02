@@ -316,12 +316,44 @@ def api_current_model():
             'message': f'Error getting current model: {str(e)}'
         })
 
+@app.route('/api/rename_model/<model_id>', methods=['PUT'])
+def api_rename_model(model_id):
+    """Rename a model in the registry"""
+    try:
+        data = request.get_json()
+        new_name = data.get('new_name')
+
+        if not new_name:
+            return jsonify({
+                'success': False,
+                'message': 'new_name is required'
+            }), 400
+
+        success = model_manager.rename_model(model_id, new_name)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Model renamed to {new_name} successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Model {model_id} not found'
+            }), 404
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error renaming model: {str(e)}'
+        })
+
 @app.route('/api/delete_model/<model_id>', methods=['DELETE'])
 def api_delete_model(model_id):
     """Delete a model from the registry"""
     try:
         success = model_manager.delete_model(model_id)
-        
+
         if success:
             return jsonify({
                 'success': True,
@@ -332,7 +364,7 @@ def api_delete_model(model_id):
                 'success': False,
                 'message': f'Model {model_id} not found'
             }), 404
-            
+
     except Exception as e:
         return jsonify({
             'success': False,
