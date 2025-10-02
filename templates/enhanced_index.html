@@ -756,9 +756,18 @@ function displayModelList(models) {
         return;
     }
 
-    let html = '<div class="row">';
+    // Fetch currently loaded model to highlight it
+    fetch('/api/current_model')
+        .then(response => response.json())
+        .then(currentModelData => {
+            const currentModelId = currentModelData.success && currentModelData.model && currentModelData.model.loaded
+                ? currentModelData.model.model_id
+                : null;
 
-    models.forEach(model => {
+            let html = '<div class="row">';
+
+            models.forEach(model => {
+                const isCurrentModel = model.model_id === currentModelId;
         const fileStatus = model.file_exists ? 'text-success' : 'text-danger';
         const fileIcon = model.file_exists ? 'fa-check-circle' : 'fa-exclamation-triangle';
 
@@ -786,13 +795,19 @@ function displayModelList(models) {
             configInfo.ngramRange = 'N/A';
         }
 
-        html += `
-        <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 text-truncate" title="${model.name}">${model.name}</h6>
-                    <i class="fas ${fileIcon} ${fileStatus}"></i>
-                </div>
+                html += `
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 ${isCurrentModel ? 'border-success border-2' : ''}">
+                        <div class="card-header d-flex justify-content-between align-items-center ${isCurrentModel ? 'bg-success text-white' : ''}">
+                            <h6 class="mb-0 text-truncate" title="${model.name}">
+                                ${isCurrentModel ? '<i class="fas fa-star me-1"></i>' : ''}
+                                ${model.name}
+                            </h6>
+                            <div>
+                                ${isCurrentModel ? '<span class="badge bg-light text-success me-2"><i class="fas fa-check"></i> ACTIVE</span>' : ''}
+                                <i class="fas ${fileIcon} ${fileStatus}"></i>
+                            </div>
+                        </div>
                 <div class="card-body">
                     <!-- Performance Metrics -->
                     <div class="mb-2">
@@ -867,14 +882,107 @@ function displayModelList(models) {
                         </button>
                         ` : ''}
                     </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        `;
-    });
+            `;
+        });
 
-    html += '</div>';
-    $('#models-list').html(html);
+        html += '</div>';
+        $('#models-list').html(html);
+    })
+    .catch(error => {
+        console.error('Error fetching current model:', error);
+        // Still display the list even if we can't get current model
+        let html = '<div class="row">';
+        models.forEach(model => {
+            const fileStatus = model.file_exists ? 'text-success' : 'text-danger';
+            const fileIcon = model.file_exists ? 'fa-check-circle' : 'fa-exclamation-triangle';
+            const trainingDate = new Date(model.training_date);
+            const dateStr = trainingDate.toLocaleDateString();
+            const timeStr = trainingDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+            let configInfo = {};
+            if (model.config) {
+                configInfo.estimators = model.config.n_estimators || 'N/A';
+                configInfo.features = model.config.max_features_tfidf || 'N/A';
+                configInfo.cvFolds = model.config.cv_folds || 'N/A';
+                configInfo.maxDepth = model.config.max_depth || 'N/A';
+                configInfo.criterion = model.config.criterion || 'N/A';
+                configInfo.ngramRange = model.config.ngram_range || 'N/A';
+            } else {
+                configInfo.estimators = 'N/A';
+                configInfo.features = 'N/A';
+                configInfo.cvFolds = 'N/A';
+                configInfo.maxDepth = 'N/A';
+                configInfo.criterion = 'N/A';
+                configInfo.ngramRange = 'N/A';
+            }
+
+            html += `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-truncate" title="${model.name}">${model.name}</h6>
+                        <i class="fas ${fileIcon} ${fileStatus}"></i>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="h6 mb-0 text-success">${(model.performance.training_acc * 100).toFixed(1)}%</div>
+                                    <small class="text-muted">Train</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="h6 mb-0 text-primary">${(model.performance.validation_acc * 100).toFixed(1)}%</div>
+                                    <small class="text-muted">Valid</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="h6 mb-0 text-info">${(model.performance.cv_acc * 100).toFixed(1)}%</div>
+                                    <small class="text-muted">CV</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <div class="small fw-bold text-muted mb-1">Configuration</div>
+                            <table class="table table-sm table-borderless mb-0" style="font-size: 0.7rem;">
+                                <tr><td class="text-muted py-0" style="width: 45%;">Trees:</td><td class="py-0"><strong>${configInfo.estimators}</strong></td></tr>
+                                <tr><td class="text-muted py-0">Features:</td><td class="py-0"><strong>${configInfo.features}</strong></td></tr>
+                                <tr><td class="text-muted py-0">CV Folds:</td><td class="py-0"><strong>${configInfo.cvFolds}</strong></td></tr>
+                                <tr><td class="text-muted py-0">Depth:</td><td class="py-0">${configInfo.maxDepth}</td></tr>
+                                <tr><td class="text-muted py-0">Criterion:</td><td class="py-0"><span class="badge ${configInfo.criterion === 'log_loss' ? 'bg-success' : 'bg-secondary'}" style="font-size: 0.55rem;">${configInfo.criterion}</span></td></tr>
+                                <tr><td class="text-muted py-0">N-grams:</td><td class="py-0">${configInfo.ngramRange}</td></tr>
+                            </table>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Size: ${model.model_size_mb.toFixed(1)} MB</small><br>
+                            <small class="text-muted">Date: ${dateStr}</small><br>
+                            <small class="text-muted">Time: ${timeStr}</small>
+                        </div>
+                        ${model.tags.length > 0 ? `
+                        <div class="mb-2">
+                            ${model.tags.slice(0, 3).map(tag => `<span class="badge bg-secondary me-1" style="font-size: 0.65rem;">${tag}</span>`).join('')}
+                            ${model.tags.length > 3 ? `<span class="badge bg-light text-dark" style="font-size: 0.65rem;">+${model.tags.length - 3}</span>` : ''}
+                        </div>
+                        ` : ''}
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="showModelDetails('${model.model_id}')" title="View Details">
+                                <i class="fas fa-info"></i>
+                            </button>
+                            ${model.file_exists ? `
+                            <button class="btn btn-outline-success btn-sm" onclick="loadModelForPredictions('${model.model_id}')" title="Load for Predictions">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        });
+        html += '</div>';
+        $('#models-list').html(html);
+    });
 }
 
 // Show model details
@@ -966,6 +1074,12 @@ function loadModelForPredictions(modelId) {
             if (response.success) {
                 showAlert('Model loaded successfully for predictions!', 'success');
                 $('#modelDetailsModal').modal('hide');
+                // Update the navbar indicator
+                if (window.updateCurrentModelIndicator) {
+                    window.updateCurrentModelIndicator();
+                }
+                // Refresh the model list to show the active indicator
+                refreshModelList();
             } else {
                 showAlert('Error loading model: ' + response.message, 'danger');
             }

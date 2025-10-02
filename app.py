@@ -270,6 +270,52 @@ def api_load_model():
             'message': f'Error loading model: {str(e)}'
         })
 
+@app.route('/api/current_model')
+def api_current_model():
+    """Get currently loaded model information"""
+    try:
+        if not classifier.is_trained:
+            return jsonify({
+                'success': True,
+                'loaded': False,
+                'message': 'No model currently loaded'
+            })
+
+        # Try to get the model metadata if it's from registry
+        current_model_info = {
+            'loaded': True,
+            'is_trained': classifier.is_trained
+        }
+
+        # Check if classifier has metadata (from registry)
+        if hasattr(classifier, 'metadata') and classifier.metadata:
+            metadata = classifier.metadata
+            current_model_info.update({
+                'model_id': metadata.model_id,
+                'name': metadata.name,
+                'performance': metadata.performance_metrics,
+                'training_date': metadata.training_date,
+                'description': metadata.description
+            })
+        else:
+            # Legacy model without metadata
+            current_model_info.update({
+                'model_id': 'legacy',
+                'name': 'Legacy Model',
+                'description': 'Model loaded from legacy model.pkl file'
+            })
+
+        return jsonify({
+            'success': True,
+            'model': current_model_info
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error getting current model: {str(e)}'
+        })
+
 @app.route('/api/delete_model/<model_id>', methods=['DELETE'])
 def api_delete_model(model_id):
     """Delete a model from the registry"""

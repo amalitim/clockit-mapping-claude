@@ -20,6 +20,7 @@ class AdvancedTaskTypeClassifier:
         self.data_processor = DataProcessor()
         self.model = None
         self.is_trained = False
+        self.metadata = None  # Store model metadata when loaded from registry
         self.model_manager = model_manager
         self._build_model()
     
@@ -237,6 +238,9 @@ class AdvancedTaskTypeClassifier:
         self.data_processor = model_data['data_processor']
         self.config = model_data.get('config', ModelConfig())
         self.is_trained = model_data.get('is_trained', True)
+
+        # Store metadata for reference
+        self.metadata = metadata
 
         print(f"Model {model_id} loaded successfully")
         print(f"   Performance: {metadata.performance_metrics.get('validation_accuracy', 'N/A'):.1%}")

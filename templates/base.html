@@ -36,7 +36,7 @@
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
+        <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="fas fa-brain"></i> ClockIt Task Classifier
             </a>
@@ -50,6 +50,13 @@
                 <a class="nav-link" href="{{ url_for('predict_page') }}">
                     <i class="fas fa-upload"></i> Predict
                 </a>
+            </div>
+            <div class="navbar-nav ms-auto">
+                <div id="current-model-indicator" class="nav-item">
+                    <span class="navbar-text text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                    </span>
+                </div>
             </div>
         </div>
     </nav>
@@ -70,6 +77,49 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Function to update current model indicator
+        function updateCurrentModelIndicator() {
+            fetch('/api/current_model')
+                .then(response => response.json())
+                .then(data => {
+                    const indicator = document.getElementById('current-model-indicator');
+                    if (data.success && data.model && data.model.loaded) {
+                        const model = data.model;
+                        const validationAcc = model.performance?.validation_accuracy;
+                        const accText = validationAcc ? ` (${(validationAcc * 100).toFixed(1)}%)` : '';
+
+                        indicator.innerHTML = `
+                            <span class="navbar-text">
+                                <i class="fas fa-check-circle text-success"></i>
+                                <strong>Active Model:</strong>
+                                <span class="text-white">${model.name}${accText}</span>
+                            </span>
+                        `;
+                    } else {
+                        indicator.innerHTML = `
+                            <span class="navbar-text text-warning">
+                                <i class="fas fa-exclamation-triangle"></i> No model loaded
+                            </span>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching current model:', error);
+                    document.getElementById('current-model-indicator').innerHTML = `
+                        <span class="navbar-text text-muted">
+                            <i class="fas fa-question-circle"></i> Model status unknown
+                        </span>
+                    `;
+                });
+        }
+
+        // Update indicator on page load
+        document.addEventListener('DOMContentLoaded', updateCurrentModelIndicator);
+
+        // Make function globally available for other pages to call after loading a model
+        window.updateCurrentModelIndicator = updateCurrentModelIndicator;
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
