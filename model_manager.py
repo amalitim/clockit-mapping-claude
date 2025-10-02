@@ -189,7 +189,8 @@ class ModelManager:
                 'performance': {
                     'training_acc': metadata.performance_metrics.get('training_accuracy', 0),
                     'validation_acc': metadata.performance_metrics.get('validation_accuracy', 0),
-                    'cv_acc': metadata.performance_metrics.get('cv_accuracy', 0)
+                    'cv_acc': metadata.performance_metrics.get('cv_accuracy', 0),
+                    'training_duration': metadata.performance_metrics.get('training_duration')
                 },
                 'config': config_summary,
                 'model_size_mb': metadata.model_size_mb,

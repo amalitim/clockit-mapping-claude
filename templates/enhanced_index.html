@@ -1128,11 +1128,6 @@ function loadModelForPredictions(modelId) {
 $('#rename-model-btn').click(function() {
     if (!currentModelId) return;
 
-    const metadata = model_manager.get_model_metadata(currentModelId);
-    const currentName = $('#modal-model-details').find('code').first().text().includes(currentModelId)
-        ? prompt('Enter new model name:')
-        : prompt('Enter new model name:', '');
-
     const newName = prompt('Enter new model name:');
     if (newName && newName.trim()) {
         $.ajax({
