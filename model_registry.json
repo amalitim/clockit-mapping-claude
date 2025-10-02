@@ -140,7 +140,7 @@
       "training_duration": 768.5969417095184
     },
     "model_size_mb": 564.241096496582,
-    "file_path": "models\\model_ultra_high_accuracy_model_1759146570.pkl",
+    "file_path": "models/model_ultra_high_accuracy_model_1759146570.pkl",
     "description": "Ultra high accuracy model targeting 94%+ performance",
     "tags": [
       "ultra_high",
@@ -216,7 +216,7 @@
       "training_duration": 801.8172767162323
     },
     "model_size_mb": 769.0997219085693,
-    "file_path": "models\\model_ultra_high_fast_model_1759147394.pkl",
+    "file_path": "models/model_ultra_high_fast_model_1759147394.pkl",
     "description": "Ultra high fast model targeting 94%+ performance with maximum features",
     "tags": [
       "ultra_high_fast",
@@ -302,7 +302,7 @@
       "training_duration": 2177.1368973255157
     },
     "model_size_mb": 157.50003910064697,
-    "file_path": "models\\model_model_750_3k_1759163863.pkl",
+    "file_path": "models/model_model_750_3k_1759163863.pkl",
     "description": "Basic model trained on clockit data as at 29th Sept.",
     "tags": []
   },
@@ -384,7 +384,7 @@
       "training_duration": 543.3436508178711
     },
     "model_size_mb": 112.74975109100342,
-    "file_path": "models\\model_model_750_3k_new_1759250758.pkl",
+    "file_path": "models/model_model_750_3k_new_1759250758.pkl",
     "description": "",
     "tags": []
   }

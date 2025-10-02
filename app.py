@@ -53,8 +53,9 @@ def load_model_if_available():
             if models:
                 latest_model = models[0]  # Most recent
                 print(f"Checking latest model: {latest_model['model_id']}")
+                print(f"Model file path: {latest_model.get('file_path', 'N/A')}")
                 print(f"Model file exists: {latest_model['file_exists']}")
-                
+
                 if latest_model['file_exists']:
                     print(f"Loading model from registry: {latest_model['model_id']}")
                     classifier.load_from_registry(latest_model['model_id'])

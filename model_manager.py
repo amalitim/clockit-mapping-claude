@@ -81,6 +81,9 @@ class ModelMetadata:
         """Create from dictionary"""
         config = ModelConfig.from_dict(data['config'])
         data['config'] = config
+        # Normalize file path to use forward slashes (cross-platform compatible)
+        if 'file_path' in data:
+            data['file_path'] = data['file_path'].replace('\\', '/')
         return cls(**data)
 
 
@@ -134,7 +137,10 @@ class ModelManager:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         config_hash = config.get_hash()
         model_id = f"{name}_{timestamp}_{config_hash}"
-        
+
+        # Normalize file path to use forward slashes (cross-platform compatible)
+        model_file_path = model_file_path.replace('\\', '/')
+
         # Get model file size
         model_size_mb = 0
         if os.path.exists(model_file_path):
@@ -189,6 +195,7 @@ class ModelManager:
                 'model_size_mb': metadata.model_size_mb,
                 'description': metadata.description,
                 'tags': metadata.tags,
+                'file_path': metadata.file_path,
                 'file_exists': os.path.exists(metadata.file_path)
             })
 
