@@ -59,7 +59,7 @@
       "training_duration": 360.0
     },
     "model_size_mb": 104.48692798614502,
-    "file_path": "enhanced_model_97pct.pkl",
+    "file_path": "models/enhanced_model_97pct.pkl",
     "description": "Enhanced model with log_loss criterion, 97.1% training accuracy, 87.4% validation accuracy. Uses bootstrap sampling (80%) and 15-fold cross-validation.",
     "tags": [
       "enhanced",
