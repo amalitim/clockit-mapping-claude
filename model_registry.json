@@ -308,7 +308,7 @@
   },
   "model_750_3k_new_20250930_184558_58de942d": {
     "model_id": "model_750_3k_new_20250930_184558_58de942d",
-    "name": "model_750_3k_new",
+    "name": "model_0750-3000_2025.09.partial",
     "config": {
       "n_estimators": 750,
       "max_depth": 25,
@@ -384,7 +384,82 @@
       "training_duration": 543.3436508178711
     },
     "model_size_mb": 112.74975109100342,
-    "file_path": "models/model_model_750_3k_new_1759250758.pkl",
+    "file_path": "models/model_model_0750-3000_2025.09.partial_1759250758.pkl",
+    "description": "",
+    "tags": []
+  },
+  "enhanced_model_20251002_154725_642fc641": {
+    "model_id": "enhanced_model_20251002_154725_642fc641",
+    "name": "model_1500-6000_2025.09",
+    "config": {
+      "n_estimators": 1500,
+      "max_depth": null,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "max_features": "sqrt",
+      "criterion": "log_loss",
+      "bootstrap": true,
+      "max_samples": 0.85,
+      "oob_score": true,
+      "class_weight": "balanced",
+      "random_state": 42,
+      "max_features_tfidf": 6000,
+      "ngram_range": [
+        1,
+        4
+      ],
+      "min_df": 1,
+      "max_df": 0.82,
+      "cv_folds": 8,
+      "test_size": 0.2
+    },
+    "training_date": "2025-10-02T15:47:25.837020",
+    "training_duration": 920.7677025794983,
+    "dataset_info": {
+      "total_samples": 8620,
+      "training_samples": 6896,
+      "validation_samples": 1724,
+      "num_features": 6002,
+      "num_classes": 15,
+      "class_names": [
+        "AmaliTech Internal",
+        "Boart Longyear Consulting Project",
+        "Brock Accounting ID Maintenance Tool",
+        "Brock-Cybersecurity Project",
+        "Clean Sky Energy",
+        "Governance",
+        "Holiday",
+        "Leave",
+        "NSP 24-AWS DE Training Project",
+        "Planning & Roadmaps",
+        "Projects",
+        "Reporting",
+        "Support",
+        "Team admin",
+        "Training & Learning"
+      ],
+      "data_path": "training-data"
+    },
+    "performance_metrics": {
+      "training_accuracy": 0.9998549883990719,
+      "validation_accuracy": 0.8996519721577726,
+      "cv_accuracy": 0.8074483465201729,
+      "cv_std": 0.06906100077418427,
+      "cv_scores": [
+        0.6651205936920223,
+        0.7402597402597403,
+        0.7792207792207793,
+        0.8404452690166976,
+        0.8644382544103992,
+        0.8820798514391829,
+        0.8458681522748375,
+        0.8421541318477251
+      ],
+      "oob_accuracy": 0.9069025522041764,
+      "training_duration": 920.7677025794983
+    },
+    "model_size_mb": 576.9010705947876,
+    "file_path": "models/model_model_1500-6000_2025.09_1759420029.pkl",
     "description": "",
     "tags": []
   }

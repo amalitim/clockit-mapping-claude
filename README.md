@@ -251,7 +251,6 @@ clockit-mapping-claude/
 ├── data_processor.py        # Enhanced data preprocessing and feature engineering
 ├── templates/
 │   ├── base.html            # Base template with navigation
-│   ├── index.html           # Legacy training interface
 │   ├── enhanced_index.html  # **Advanced training & model management interface**
 │   ├── predict.html         # Prediction interface with advanced table
 │   └── visualize.html       # Comprehensive visualization dashboard
