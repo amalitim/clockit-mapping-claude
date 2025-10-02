@@ -11,6 +11,13 @@ services:
       - ./training-data:/app/training-data
       - ./models:/app/models
       - ./model_registry.json:/app/model_registry.json
+      # Mount source code for hot-reload during development
+      - ./app.py:/app/app.py
+      - ./advanced_classifier.py:/app/advanced_classifier.py
+      - ./model_manager.py:/app/model_manager.py
+      - ./data_processor.py:/app/data_processor.py
+      - ./templates:/app/templates
+      - ./static:/app/static
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=production
