@@ -83,6 +83,28 @@ The application will be available at: http://localhost:5000
 - API documentation (development mode)
 
 ## Latest Updates
+- **2025-11-10**: Trained Ultra High model with updated data (10,153 samples, 16 classes)
+  - Model ID: `UH_Model_2025.10.data_20251110_165457_642fc641`
+  - Configuration: 1,500 trees, 6,000 TF-IDF features, 8-fold CV
+  - Performance: 91.0% test accuracy, 81.9% CV accuracy (±13.5%)
+  - Training time: ~17.5 minutes
+  - Best performing classes: Clean Sky Energy, Brock projects (F1: 1.00)
 - **2025-09-30**: Added Docker support for easier deployment and consistent environment
 - **2025-09-30**: Added debug utilities for prediction verification
 - **2025-09-30**: Updated training data to latest version
+
+## Model Performance Summary
+
+### Current Best Model
+- **Model**: UH_Model_2025.10.data (Nov 10, 2025)
+- **Test Accuracy**: 91.0%
+- **Cross-Validation**: 81.9% (±13.5%)
+- **Samples**: 10,153 training samples
+- **Classes**: 16 task types
+
+### Performance by Class (F1-Score)
+- Perfect (1.00): Clean Sky Energy, Brock-Cybersecurity, Boart Longyear Enterprise Reporting
+- Excellent (>0.95): NSP 24-AWS DE Training (0.99), Brock Accounting Tool (0.98), Team admin (0.95)
+- Strong (>0.90): AmaliTech Internal (0.92), Leave (0.92), Reporting (0.92), Projects (0.90)
+- Good (>0.80): Holiday (0.89), Support (0.85), Governance (0.83)
+- Moderate: Training & Learning (0.79)

@@ -462,5 +462,81 @@
     "file_path": "models/model_model_1500-6000_2025.09_1759420029.pkl",
     "description": "",
     "tags": []
+  },
+  "UH_Model_2025.10.data_20251110_165457_642fc641": {
+    "model_id": "UH_Model_2025.10.data_20251110_165457_642fc641",
+    "name": "UH_Model_2025.10.data",
+    "config": {
+      "n_estimators": 1500,
+      "max_depth": null,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "max_features": "sqrt",
+      "criterion": "log_loss",
+      "bootstrap": true,
+      "max_samples": 0.85,
+      "oob_score": true,
+      "class_weight": "balanced",
+      "random_state": 42,
+      "max_features_tfidf": 6000,
+      "ngram_range": [
+        1,
+        4
+      ],
+      "min_df": 1,
+      "max_df": 0.82,
+      "cv_folds": 8,
+      "test_size": 0.2
+    },
+    "training_date": "2025-11-10T16:54:57.974195",
+    "training_duration": 1049.2161288261414,
+    "dataset_info": {
+      "total_samples": 10153,
+      "training_samples": 8122,
+      "validation_samples": 2031,
+      "num_features": 6002,
+      "num_classes": 16,
+      "class_names": [
+        "AmaliTech Internal",
+        "Boart Longyear Consulting Project",
+        "Boart Longyear Enterprise Reporting Project",
+        "Brock Accounting ID Maintenance Tool",
+        "Brock-Cybersecurity Project",
+        "Clean Sky Energy",
+        "Governance",
+        "Holiday",
+        "Leave",
+        "NSP 24-AWS DE Training Project",
+        "Planning & Roadmaps",
+        "Projects",
+        "Reporting",
+        "Support",
+        "Team admin",
+        "Training & Learning"
+      ],
+      "data_path": "training-data"
+    },
+    "performance_metrics": {
+      "training_accuracy": 0.9997537552327013,
+      "validation_accuracy": 0.9069423929098966,
+      "cv_accuracy": 0.8190820008314563,
+      "cv_std": 0.06737489415484059,
+      "cv_scores": [
+        0.6795275590551181,
+        0.764381402679275,
+        0.780929866036249,
+        0.8699763593380615,
+        0.8770685579196218,
+        0.8676122931442081,
+        0.8817966903073287,
+        0.8313632781717888
+      ],
+      "oob_accuracy": 0.9129524747599114,
+      "training_duration": 1049.2161288261414
+    },
+    "model_size_mb": 667.2189083099365,
+    "file_path": "models/model_UH_Model_2025.10.data_1762793690.pkl",
+    "description": "ultra high model based on data through October 2025",
+    "tags": []
   }
 }
